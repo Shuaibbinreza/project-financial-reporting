@@ -3,17 +3,30 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FinancialReportController;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group.
+|
+*/
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Home / Dashboard
+Route::get('/', [FinancialReportController::class, 'dashboard'])->name('home');
 
-Route::get('/reports/financial', [FinancialReportController::class, 'index'])->name('reports.financial');
-Route::get('/reports/cutoff', [FinancialReportController::class, 'cutoffReport'])->name('reports.cutoff');
-Route::get('/reports/category-summary', [FinancialReportController::class, 'categorySummary'])->name('reports.categorySummary');
-Route::get('/reports/project-summary', [FinancialReportController::class, 'projectSummary'])->name('reports.projectSummary');
+// Reports Routes - Grouped
+Route::prefix('reports')->name('reports.')->group(function () {
+    // Main report pages
+    Route::get('/financial', [FinancialReportController::class, 'index'])->name('financial');
+    Route::get('/cutoff', [FinancialReportController::class, 'cutoffReport'])->name('cutoff');
+    Route::get('/category-summary', [FinancialReportController::class, 'categorySummary'])->name('category-summary');
+    Route::get('/project-summary', [FinancialReportController::class, 'projectSummary'])->name('project-summary');
 
-// AJAX routes
-Route::get('/reports/category-summary/ajax', [FinancialReportController::class, 'categorySummaryAjax'])->name('reports.categorySummaryAjax');
-Route::get('/reports/project-summary/ajax', [FinancialReportController::class, 'projectSummaryAjax'])->name('reports.projectSummaryAjax');
-Route::get('/reports/get-districts', [FinancialReportController::class, 'getDistricts'])->name('reports.getDistricts');
+    // AJAX endpoints
+    Route::get('/category-summary/ajax', [FinancialReportController::class, 'categorySummaryAjax'])->name('category-summary-ajax');
+    Route::get('/project-summary/ajax', [FinancialReportController::class, 'projectSummaryAjax'])->name('project-summary-ajax');
+    Route::get('/get-districts', [FinancialReportController::class, 'getDistricts'])->name('get-districts');
+});

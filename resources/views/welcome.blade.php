@@ -1,203 +1,257 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Laravel') }} - Financial Reporting</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        .hero-section {
-            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-            min-height: 60vh;
-        }
-        .feature-card {
-            transition: transform 0.2s;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-    </style>
-</head>
-<body class="bg-light">
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url('/') }}">
-                <i class="bi bi-building me-2"></i>{{ config('app.name', 'Laravel') }}
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    @if (Route::has('login'))
-                        @auth
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url('/dashboard') }}">
-                                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                                </a>
-                            </li>
-                        @else
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('login') }}">
-                                    <i class="bi bi-box-arrow-in-right me-1"></i>Log in
-                                </a>
-                            </li>
-                            @if (Route::has('register'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('register') }}">
-                                        <i class="bi bi-person-plus me-1"></i>Register
-                                    </a>
-                                </li>
-                            @endif
-                        @endauth
-                    @endif
+@extends('layouts.main')
+
+@section('title', 'Dashboard')
+
+@section('content')
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse show">
+            <div class="position-sticky pt-3">
+                <div class="sidebar-brand text-white mb-4">
+                    <i class="bi bi-building me-2"></i>{{ config('app.name', 'Financial Reporting') }}
+                </div>
+
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
+                            <i class="bi bi-house-door"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="sidebar-link text-white-50 small text-uppercase mt-3 mb-2">Reports</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('reports.financial') ? 'active' : '' }}" href="{{ route('reports.financial') }}">
+                            <i class="bi bi-graph-up-arrow"></i>Financial Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('reports.project-summary') ? 'active' : '' }}" href="{{ route('reports.project-summary') }}">
+                            <i class="bi bi-briefcase"></i>Project Summary
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('reports.category-summary') ? 'active' : '' }}" href="{{ route('reports.category-summary') }}">
+                            <i class="bi bi-pie-chart"></i>Category Summary
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('reports.cutoff') ? 'active' : '' }}" href="{{ route('reports.cutoff') }}">
+                            <i class="bi bi-file-earmark-ruled"></i>Cutoff Report
+                        </a>
+                    </li>
                 </ul>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <!-- Hero Section -->
-    <section class="hero-section d-flex align-items-center text-white">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h1 class="display-4 fw-bold mb-4">Project Financial Reporting</h1>
-                    <p class="lead mb-4">A comprehensive solution for tracking and managing project budgets, expenses, and financial reports across multiple divisions.</p>
-                    <div class="d-flex gap-3">
-                        <a href="{{ route('reports.financial') }}" class="btn btn-light btn-lg">
-                            <i class="bi bi-graph-up me-2"></i>View Reports
-                        </a>
-                        @auth
-                            <a href="{{ url('/dashboard') }}" class="btn btn-outline-light btn-lg">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                            </a>
-                        @else
-                            <a href="{{ route('login') }}" class="btn btn-outline-light btn-lg">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Get Started
-                            </a>
-                        @endauth
-                    </div>
-                </div>
-                <div class="col-lg-6 text-center d-none d-lg-block">
-                    <i class="bi bi-pie-chart" style="font-size: 10rem; opacity: 0.3;"></i>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="py-5">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="fw-bold">Key Features</h2>
-                <p class="text-muted">Everything you need to manage project finances effectively</p>
-            </div>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm feature-card">
-                        <div class="card-body text-center">
-                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                <i class="bi bi-folder2-open text-primary fs-4"></i>
-                            </div>
-                            <h5 class="card-title">Project Management</h5>
-                            <p class="card-text text-muted">Organize and track multiple projects with detailed budget allocations.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm feature-card">
-                        <div class="card-body text-center">
-                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                <i class="bi bi-pie-chart text-primary fs-4"></i>
-                            </div>
-                            <h5 class="card-title">Financial Reports</h5>
-                            <p class="card-text text-muted">Generate quarterly financial reports with budget vs. expense analysis.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm feature-card">
-                        <div class="card-body text-center">
-                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                <i class="bi bi-diagram-3 text-primary fs-4"></i>
-                            </div>
-                            <h5 class="card-title">Division Tracking</h5>
-                            <p class="card-text text-muted">Monitor financial data across multiple divisions and districts.</p>
-                        </div>
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+            <!-- Top Navigation -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Dashboard</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-download"></i> Export
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!-- Quick Links Section -->
-    <section class="py-5 bg-white">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card border-primary">
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card primary h-100">
                         <div class="card-body">
-                            <h5 class="card-title text-primary">
-                                <i class="bi bi-file-earmark-text me-2"></i>Financial Reports
-                            </h5>
-                            <p class="card-text">Access quarterly financial reports with filtering options by project, division, and time period.</p>
-                            <a href="{{ route('reports.financial') }}" class="btn btn-primary">
-                                <i class="bi bi-arrow-right me-1"></i>View Reports
-                            </a>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1">Total Projects</h6>
+                                    <h2 class="mb-0">{{ $stats['total_projects'] ?? 0 }}</h2>
+                                </div>
+                                <div class="feature-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="bi bi-briefcase"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-info">
+                <div class="col-md-3">
+                    <div class="card stat-card success h-100">
                         <div class="card-body">
-                            <h5 class="card-title text-info">
-                                <i class="bi bi-briefcase me-2"></i>Project Summary
-                            </h5>
-                            <p class="card-text">View project-wise financial summary with budget vs. expense analysis across all projects.</p>
-                            <a href="{{ route('reports.projectSummary') }}" class="btn btn-info">
-                                <i class="bi bi-arrow-right me-1"></i>View Projects
-                            </a>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1">Total Budget</h6>
+                                    <h2 class="mb-0">{{ number_format($stats['total_budget'] ?? 0) }}</h2>
+                                </div>
+                                <div class="feature-icon bg-success bg-opacity-10 text-success">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-secondary">
+                <div class="col-md-3">
+                    <div class="card stat-card warning h-100">
                         <div class="card-body">
-                            <h5 class="card-title text-secondary">
-                                <i class="bi bi-question-circle me-2"></i>Need Help?
-                            </h5>
-                            <p class="card-text">Learn more about how to use the financial reporting system and generate detailed reports.</p>
-                            <a href="https://laravel.com/docs" target="_blank" class="btn btn-outline-secondary">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1">Total Expenses</h6>
+                                    <h2 class="mb-0">{{ number_format($stats['total_expenses'] ?? 0) }}</h2>
+                                </div>
+                                <div class="feature-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="bi bi-cart"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card info h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1">Districts</h6>
+                                    <h2 class="mb-0">{{ $stats['total_districts'] ?? 0 }}</h2>
+                                </div>
+                                <div class="feature-icon bg-info bg-opacity-10 text-info">
+                                    <i class="bi bi-geo-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-lightning me-2"></i>Quick Access
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <a href="{{ route('reports.financial') }}" class="text-decoration-none">
+                                        <div class="card h-100 border-primary">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-graph-up-arrow text-primary fs-2"></i>
+                                                <h5 class="mt-2 text-dark">Financial Reports</h5>
+                                                <p class="text-muted small mb-0">Quarterly financial data</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-3">
+                                    <a href="{{ route('reports.project-summary') }}" class="text-decoration-none">
+                                        <div class="card h-100 border-info">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-briefcase text-info fs-2"></i>
+                                                <h5 class="mt-2 text-dark">Project Summary</h5>
+                                                <p class="text-muted small mb-0">Budget vs Expenses</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-3">
+                                    <a href="{{ route('reports.category-summary') }}" class="text-decoration-none">
+                                        <div class="card h-100 border-success">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-pie-chart text-success fs-2"></i>
+                                                <h5 class="mt-2 text-dark">Category Summary</h5>
+                                                <p class="text-muted small mb-0">Category breakdown</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-3">
+                                    <a href="{{ route('reports.cutoff') }}" class="text-decoration-none">
+                                        <div class="card h-100 border-warning">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-file-earmark-ruled text-warning fs-2"></i>
+                                                <h5 class="mt-2 text-dark">Cutoff Report</h5>
+                                                <p class="text-muted small mb-0">Project status as of date</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-info-circle me-2"></i>Key Features
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-start">
+                                        <div class="feature-icon bg-primary bg-opacity-10 text-primary me-3 flex-shrink-0">
+                                            <i class="bi bi-folder2-open"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-1">Project Management</h5>
+                                            <p class="text-muted mb-0 small">Organize and track multiple projects with detailed budget allocations.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-start">
+                                        <div class="feature-icon bg-success bg-opacity-10 text-success me-3 flex-shrink-0">
+                                            <i class="bi bi-pie-chart"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-1">Financial Reports</h5>
+                                            <p class="text-muted mb-0 small">Generate quarterly financial reports with budget vs. expense analysis.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-start">
+                                        <div class="feature-icon bg-info bg-opacity-10 text-info me-3 flex-shrink-0">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-1">Division Tracking</h5>
+                                            <p class="text-muted mb-0 small">Monitor financial data across multiple divisions and districts.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="mt-4 py-3 border-top">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-0">&copy; {{ date('Y') }} {{ config('app.name', 'Financial Reporting') }}. All rights reserved.</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <a href="#" class="me-3">
                                 <i class="bi bi-book me-1"></i>Documentation
                             </a>
+                            <a href="#">
+                                <i class="bi bi-question-circle me-1"></i>Support
+                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="mb-0">&copy; {{ date('Y') }} {{ config('app.name', 'Laravel') }}. All rights reserved.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <a href="https://laravel.com/docs" class="text-white text-decoration-none me-3" target="_blank">
-                        <i class="bi bi-book me-1"></i>Documentation
-                    </a>
-                    <a href="https://laracasts.com" class="text-white text-decoration-none" target="_blank">
-                        <i class="bi bi-play-circle me-1"></i>Tutorials
-                    </a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+            </footer>
+        </main>
+    </div>
+</div>
+@endsection

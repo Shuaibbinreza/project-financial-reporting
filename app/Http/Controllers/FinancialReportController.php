@@ -323,28 +323,28 @@ class FinancialReportController extends Controller
                 // Show all quarters in separate columns
                 $quarters = [];
                 $totalExpenses = 0;
-                
+
                 foreach ($quarterMonths as $qName => $months) {
                     $expenses = $buildVoucherQuery($months)
                         ->where('category_id', $category->id)
                         ->sum('amount');
-                    
+
                     // Budget for this quarter (3 months = 3/12 of yearly budget)
                     $categoryBudget = YearlyBudget::where('category_id', $category->id)
                         ->when($projectId, fn($q) => $q->where('project_id', $projectId))
                         ->sum('total_amount') * (3 / 12);
 
                     $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
-                    
+
                     $quarters[$qName] = [
                         'expenses' => $expenses,
                         'budget' => $categoryBudget,
                         'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
                     ];
-                    
+
                     $totalExpenses += $expenses;
                 }
-                
+
                 // Total budget for this category (full year = all 12 months)
                 $categoryBudgetTotal = YearlyBudget::where('category_id', $category->id)
                     ->when($projectId, fn($q) => $q->where('project_id', $projectId))
@@ -422,7 +422,6 @@ class FinancialReportController extends Controller
      */
     public function projectSummaryAjax(Request $request)
     {
-        $projectId = $request->project_id;
         $divisionId = $request->division_id;
         $districtId = $request->district_id;
         $selectedQuarter = $request->quarter;
@@ -447,10 +446,9 @@ class FinancialReportController extends Controller
         $totalBudget = YearlyBudget::sum('total_amount');
 
         // Build voucher query base
-        $buildVoucherQuery = function($months) use ($projectId, $divisionId, $districtId) {
-            return VoucherEntry::whereHas('voucher', function ($q) use ($projectId, $divisionId, $districtId, $months) {
-                $q->when($projectId, fn($q) => $q->where('project_id', $projectId))
-                  ->when($divisionId, fn($q) => $q->where('division_id', $divisionId))
+        $buildVoucherQuery = function($months) use ($divisionId, $districtId) {
+            return VoucherEntry::whereHas('voucher', function ($q) use ($divisionId, $districtId, $months) {
+                $q->when($divisionId, fn($q) => $q->where('division_id', $divisionId))
                   ->when($districtId, fn($q) => $q->where('district_id', $districtId))
                   ->whereIn(DB::raw('MONTH(date)'), $months);
             });
@@ -461,17 +459,17 @@ class FinancialReportController extends Controller
             if ($showAllQuarters) {
                 // Show summation of all quarters
                 $totalExpenses = 0;
-                
+
                 foreach ($quarterMonths as $qName => $months) {
                     $expenses = $buildVoucherQuery($months)
                         ->whereHas('voucher', function ($q) use ($project) {
                             $q->where('project_id', $project->id);
                         })
                         ->sum('amount');
-                    
+
                     $totalExpenses += $expenses;
                 }
-                
+
                 // Total budget for this project (full year)
                 $projectBudget = YearlyBudget::where('project_id', $project->id)
                     ->sum('total_amount');
@@ -529,5 +527,20 @@ class FinancialReportController extends Controller
             'showAllQuarters' => $showAllQuarters,
             'selectedQuarter' => $showAllQuarters ? 'All' : $selectedQuarter,
         ]);
+    }
+
+    /**
+     * Dashboard - Shows overview statistics
+     */
+    public function dashboard()
+    {
+        $stats = [
+            'total_projects' => Project::count(),
+            'total_budget' => YearlyBudget::sum('total_amount'),
+            'total_expenses' => VoucherEntry::sum('amount'),
+            'total_districts' => District::count(),
+        ];
+
+        return view('welcome', compact('stats'));
     }
 }
