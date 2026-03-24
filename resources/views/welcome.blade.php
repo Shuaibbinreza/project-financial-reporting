@@ -136,7 +136,7 @@
     <section class="py-5 bg-white">
         <div class="container">
             <div class="row g-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card border-primary">
                         <div class="card-body">
                             <h5 class="card-title text-primary">
@@ -149,7 +149,20 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">
+                                <i class="bi bi-briefcase me-2"></i>Project Summary
+                            </h5>
+                            <p class="card-text">View project-wise financial summary with budget vs. expense analysis across all projects.</p>
+                            <a href="{{ route('reports.projectSummary') }}" class="btn btn-info">
+                                <i class="bi bi-arrow-right me-1"></i>View Projects
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <div class="card border-secondary">
                         <div class="card-body">
                             <h5 class="card-title text-secondary">
