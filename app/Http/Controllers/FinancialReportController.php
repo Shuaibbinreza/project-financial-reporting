@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\EconomicCode;
 use App\Models\Division;
 use App\Models\District;
+use Illuminate\Support\Facades\DB;
 
 class FinancialReportController extends Controller
 {
@@ -75,7 +76,7 @@ class FinancialReportController extends Controller
                         $q->when($projectId, fn($q) => $q->where('project_id', $projectId))
                           ->when($divisionIds, fn($q) => $q->whereIn('division_id', $divisionIds))
                           ->when($districtIds, fn($q) => $q->whereIn('district_id', $districtIds))
-                          ->whereMonth('date', $months);
+                          ->whereIn(DB::raw('MONTH(date)'), $months);
                     })
                     ->sum('amount');
 
@@ -170,49 +171,86 @@ class FinancialReportController extends Controller
     }
 
     public function categorySummary(Request $request)
-{
-    // Cutoff date
-    $cutoffDate = $request->date ? \Carbon\Carbon::parse($request->date) : \Carbon\Carbon::create(2025, 9, 30);
+    {
+        // Optional filters
+        $projectId = $request->project_id;
+        $divisionIds = $request->division_ids;
+        $districtIds = $request->district_ids;
+        $selectedQuarter = $request->quarter;
 
-    // Optional filters: division/district
-    $divisionIds = $request->division_ids;
-    $districtIds = $request->district_ids;
+        // If "All" is selected or no quarter, default to Q4 (latest)
+        if (!$selectedQuarter || $selectedQuarter === 'all') {
+            $selectedQuarter = 'Q4';
+        }
 
-    // Get all categories
-    $categories = \App\Models\Category::all();
-
-    $report = [];
-
-    // Total project budget (all projects combined)
-    $totalProjectBudget = \App\Models\YearlyBudget::sum('total_amount');
-
-    foreach ($categories as $category) {
-
-        // Total expenses for this category as of cutoff date
-        $expenses = \App\Models\VoucherEntry::where('category_id', $category->id)
-            ->whereHas('voucher', function ($q) use ($cutoffDate, $divisionIds, $districtIds) {
-                $q->whereDate('date', '<=', $cutoffDate)
-                  ->when($divisionIds, fn($q) => $q->whereIn('division_id', $divisionIds))
-                  ->when($districtIds, fn($q) => $q->whereIn('district_id', $districtIds));
-            })
-            ->sum('amount');
-
-        // Total budget for this category (all projects)
-        $categoryBudget = \App\Models\YearlyBudget::where('category_id', $category->id)->sum('total_amount');
-
-        $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
-        $projectImplementation = $totalProjectBudget > 0 ? ($expenses / $totalProjectBudget) * 100 : 0;
-
-        $report[] = [
-            'category' => $category->name,
-            'expenses' => $expenses,
-            'budget' => $categoryBudget,
-            'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
-            'total_project_budget' => $totalProjectBudget,
-            'project_implementation' => round($projectImplementation, 2) . '%',
+        // Cumulative quarter months mapping (fiscal year starts July)
+        // Q1 = July to September (months 7,8,9)
+        // Q2 = July to December (months 7,8,9,10,11,12)
+        // Q3 = July to March (months 7,8,9,10,11,12,1,2,3)
+        // Q4 = July to June (months 7,8,9,10,11,12,1,2,3,4,5,6)
+        $cumulativeMonths = [
+            'Q1' => [7, 8, 9],
+            'Q2' => [7, 8, 9, 10, 11, 12],
+            'Q3' => [7, 8, 9, 10, 11, 12, 1, 2, 3],
+            'Q4' => [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
         ];
-    }
 
-    return view('reports.category_summary', compact('report', 'cutoffDate'));
-}
+        $months = $cumulativeMonths[$selectedQuarter] ?? $cumulativeMonths['Q4'];
+
+        // Get all categories and projects
+        $categories = \App\Models\Category::all();
+        $projects = \App\Models\Project::all();
+
+        $report = [];
+
+        // Total project budget (filtered by project if selected)
+        $totalProjectBudgetQuery = \App\Models\YearlyBudget::query()
+            ->when($projectId, fn($q) => $q->where('project_id', $projectId));
+
+        $totalProjectBudget = $totalProjectBudgetQuery->sum('total_amount');
+
+        foreach ($categories as $category) {
+
+            // Get expenses for selected quarter (cumulative from fiscal year start)
+            $expenses = \App\Models\VoucherEntry::where('category_id', $category->id)
+                ->whereHas('voucher', function ($q) use ($projectId, $divisionIds, $districtIds, $months) {
+                    $q->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                      ->when($divisionIds, fn($q) => $q->whereIn('division_id', $divisionIds))
+                      ->when($districtIds, fn($q) => $q->whereIn('district_id', $districtIds))
+                      ->whereIn(DB::raw('MONTH(date)'), $months);
+                })
+                ->sum('amount');
+
+            // Budget for this category for the selected quarter period
+            // Calculate based on number of months in the cumulative period
+            $monthCount = count($months);
+            $categoryBudget = \App\Models\YearlyBudget::where('category_id', $category->id)
+                ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                ->sum('total_amount') * ($monthCount / 12);
+
+            $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
+
+            // Total budget for this category (full year)
+            $categoryBudgetTotal = \App\Models\YearlyBudget::where('category_id', $category->id)
+                ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                ->sum('total_amount');
+
+            $budgetedPercentageTotal = $categoryBudgetTotal > 0 ? ($expenses / $categoryBudgetTotal) * 100 : 0;
+            $projectImplementation = $totalProjectBudget > 0 ? ($expenses / $totalProjectBudget) * 100 : 0;
+
+            $report[] = [
+                'category' => $category->name,
+                'expenses' => $expenses,
+                'budget' => $categoryBudget,
+                'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
+                'total_expenses' => $expenses,
+                'total_budget' => $categoryBudgetTotal,
+                'budgeted_percentage_total' => round($budgetedPercentageTotal, 2) . '%',
+                'total_project_budget' => $totalProjectBudget,
+                'project_implementation' => round($projectImplementation, 2) . '%',
+            ];
+        }
+
+        return view('reports.category_summary', compact('report', 'projects', 'selectedQuarter'));
+    }
 }
