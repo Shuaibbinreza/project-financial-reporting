@@ -11,3 +11,7 @@ Route::get('/', function () {
 Route::get('/reports/financial', [FinancialReportController::class, 'index'])->name('reports.financial');
 Route::get('/reports/cutoff', [FinancialReportController::class, 'cutoffReport'])->name('reports.cutoff');
 Route::get('/reports/category-summary', [FinancialReportController::class, 'categorySummary'])->name('reports.categorySummary');
+
+// AJAX routes
+Route::get('/reports/category-summary/ajax', [FinancialReportController::class, 'categorySummaryAjax'])->name('reports.categorySummaryAjax');
+Route::get('/reports/get-districts', [FinancialReportController::class, 'getDistricts'])->name('reports.getDistricts');

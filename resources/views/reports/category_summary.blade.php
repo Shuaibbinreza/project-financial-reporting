@@ -15,23 +15,8 @@
                 <h1 class="h3 mb-1">
                     <i class="bi bi-pie-chart me-2"></i>Category-wise Financial Summary
                 </h1>
-                <p class="text-muted mb-0">
-                    @switch($selectedQuarter)
-                        @case('Q1')
-                            Showing data from July to September (Q1 - Cumulative)
-                            @break
-                        @case('Q2')
-                            Showing data from July to December (Q2 - Cumulative)
-                            @break
-                        @case('Q3')
-                            Showing data from July to March (Q3 - Cumulative)
-                            @break
-                        @case('Q4')
-                            Showing data from July to June (Q4 - Full Year Cumulative)
-                            @break
-                        @default
-                            Showing data from July to June (Q4 - Default)
-                    @endswitch
+                <p class="text-muted mb-0" id="headerDescription">
+                    Showing data from July to June (Q4 - Full Year Cumulative)
                 </p>
             </div>
             <div class="col-auto">
@@ -49,39 +34,52 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="GET" action="{{ route('reports.categorySummary') }}" class="row g-3">
-                    <div class="col-md-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
                         <label for="project_id" class="form-label">Project</label>
                         <select name="project_id" id="project_id" class="form-select">
                             <option value="">All Projects</option>
                             @foreach($projects as $project)
-                                <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
-                                    {{ $project->name }}
-                                </option>
+                                <option value="{{ $project->id }}">{{ $project->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label for="quarter" class="form-label">Quarter</label>
-                        <select name="quarter" id="quarter" class="form-select">
-                            <option value="all" {{ request('quarter') == 'all' || !request('quarter') ? 'selected' : '' }}>All (Default to Q4)</option>
-                            <option value="Q4" {{ request('quarter') == 'Q4' ? 'selected' : '' }}>Q4 (Till June)</option>
-                            <option value="Q3" {{ request('quarter') == 'Q3' ? 'selected' : '' }}>Q3 (Till March)</option>
-                            <option value="Q2" {{ request('quarter') == 'Q2' ? 'selected' : '' }}>Q2 (Till December)</option>
-                            <option value="Q1" {{ request('quarter') == 'Q1' ? 'selected' : '' }}>Q1 (Till September)</option>
+                    <div class="col-md-3">
+                        <label for="division_id" class="form-label">Division</label>
+                        <select name="division_id" id="division_id" class="form-select">
+                            <option value="">All Divisions</option>
+                            @foreach(\App\Models\Division::all() as $division)
+                                <option value="{{ $division->id }}">{{ $division->name }}</option>
+                            @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <div class="btn-group w-100" role="group">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-filter me-1"></i>Filter
-                            </button>
-                            <a href="{{ route('reports.categorySummary') }}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle me-1"></i>Clear
-                            </a>
-                        </div>
+                    <div class="col-md-3">
+                        <label for="district_id" class="form-label">District</label>
+                        <select name="district_id" id="district_id" class="form-select" disabled>
+                            <option value="">All Districts</option>
+                        </select>
                     </div>
-                </form>
+                    <div class="col-md-3">
+                        <label for="quarter" class="form-label">Quarter</label>
+                        <select name="quarter" id="quarter" class="form-select">
+                            <option value="all">All Quarters</option>
+                            <option value="Q4" selected>Q4 (Till June)</option>
+                            <option value="Q3">Q3 (Till March)</option>
+                            <option value="Q2">Q2 (Till December)</option>
+                            <option value="Q1">Q1 (Till September)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary" id="filterBtn">
+                            <i class="bi bi-filter me-1"></i>Filter
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                            <i class="bi bi-x-circle me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -89,58 +87,231 @@
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-table me-2"></i>Category Summary - {{ $selectedQuarter }}
+                    <i class="bi bi-table me-2"></i>Category Summary - <span id="quarterLabel">Q4</span>
                 </h5>
-                <span class="badge bg-secondary">{{ count($report) }} Categories</span>
+                <span class="badge bg-secondary" id="categoryCount">0 Categories</span>
             </div>
             <div class="card-body p-0">
-                @if(count($report) > 0)
-                    <div class="table-responsive">
-                        <table class="table table-primary table-striped mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th class="align-middle">Cost Category</th>
-                                    <th class="align-middle text-end">Expenses</th>
-                                    <th class="align-middle text-end">Budget</th>
-                                    <th class="align-middle text-center">Budgeted (%)</th>
-                                    <th class="align-middle text-end">Total Project Budget</th>
-                                    <th class="align-middle text-center">Implementation (%)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($report as $row)
-                                <tr>
-                                    <td class="fw-bold">{{ $row['category'] }}</td>
-                                    <td class="text-end">{{ number_format($row['expenses']) }}</td>
-                                    <td class="text-end">{{ number_format($row['budget']) }}</td>
-                                    <td class="text-center">
-                                        @php $pct = floatval($row['budgeted_percentage']); @endphp
-                                        <span class="badge {{ $pct >= 100 ? 'bg-danger' : ($pct >= 75 ? 'bg-warning' : 'bg-success') }}">
-                                            {{ $row['budgeted_percentage'] }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">{{ number_format($row['total_project_budget']) }}</td>
-                                    <td class="text-center">
-                                        @php $implPct = floatval($row['project_implementation']); @endphp
-                                        <span class="badge {{ $implPct >= 100 ? 'bg-danger' : ($implPct >= 75 ? 'bg-warning' : 'bg-success') }}">
-                                            {{ $row['project_implementation'] }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                <div id="reportTableContainer">
+                    <!-- Table will be loaded here via AJAX -->
+                </div>
+                <div id="loadingSpinner" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox display-1 text-muted"></i>
-                        <p class="text-muted mt-3">No data available for the selected filters</p>
-                    </div>
-                @endif
+                    <p class="mt-2 text-muted">Loading data...</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get districts by division (cascading dropdown)
+        document.getElementById('division_id').addEventListener('change', function() {
+            const divisionId = this.value;
+            const districtSelect = document.getElementById('district_id');
+            
+            // Clear existing options
+            districtSelect.innerHTML = '<option value="">All Districts</option>';
+            
+            if (divisionId) {
+                districtSelect.disabled = true;
+                fetch(`/reports/get-districts?division_id=${divisionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district.id;
+                            option.textContent = district.name;
+                            districtSelect.appendChild(option);
+                        });
+                        districtSelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching districts:', error);
+                        districtSelect.disabled = false;
+                    });
+            } else {
+                districtSelect.disabled = true;
+            }
+        });
+
+        // Quarter descriptions
+        const quarterDescriptions = {
+            'Q1': 'Showing data for Q1 (July - September)',
+            'Q2': 'Showing data for Q2 (October - December)',
+            'Q3': 'Showing data for Q3 (January - March)',
+            'Q4': 'Showing data for Q4 (April - June)',
+            'All': 'Showing total summation of all quarters (Q1 + Q2 + Q3 + Q4)'
+        };
+
+        // Fetch report data via AJAX
+        function fetchReport() {
+            const projectId = document.getElementById('project_id').value;
+            const divisionId = document.getElementById('division_id').value;
+            const districtId = document.getElementById('district_id').value;
+            const quarter = document.getElementById('quarter').value;
+
+            // Show loading spinner
+            document.getElementById('reportTableContainer').innerHTML = '';
+            document.getElementById('loadingSpinner').style.display = 'block';
+
+            // Build query string
+            const params = new URLSearchParams();
+            if (projectId) params.append('project_id', projectId);
+            if (divisionId) params.append('division_id', divisionId);
+            if (districtId) params.append('district_id', districtId);
+            if (quarter) params.append('quarter', quarter);
+
+            fetch(`/reports/category-summary/ajax?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    renderTable(data);
+                    updateHeader(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching report:', error);
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('reportTableContainer').innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="bi bi-exclamation-triangle display-1 text-danger"></i>
+                            <p class="text-danger mt-3">Error loading data. Please try again.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function updateHeader(data) {
+            const quarter = data.selectedQuarter;
+            document.getElementById('headerDescription').textContent = quarterDescriptions[quarter] || quarterDescriptions['Q4'];
+            document.getElementById('quarterLabel').textContent = quarter;
+            document.getElementById('categoryCount').textContent = `${data.report.length} Categories`;
+        }
+
+        function renderTable(data) {
+            const container = document.getElementById('reportTableContainer');
+            
+            if (data.report.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No data available for the selected filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let thead = '';
+            let tbody = '';
+
+            if (data.showAllQuarters) {
+                // Show summation of all quarters (single row format)
+                thead = `
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="align-middle">Cost Category</th>
+                            <th class="align-middle text-end">Total Expenses (Q1-Q4)</th>
+                            <th class="align-middle text-end">Total Budget</th>
+                            <th class="align-middle text-center">Budgeted (%)</th>
+                            <th class="align-middle text-end">Total Project Budget</th>
+                            <th class="align-middle text-center">Implementation (%)</th>
+                        </tr>
+                    </thead>
+                `;
+
+                tbody = data.report.map(row => {
+                    const pct = parseFloat(row.budgeted_percentage);
+                    const implPct = parseFloat(row.project_implementation);
+
+                    return `
+                        <tr>
+                            <td class="fw-bold">${row.category}</td>
+                            <td class="text-end">${numberFormat(row.total_expenses)}</td>
+                            <td class="text-end">${numberFormat(row.total_budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${row.budgeted_percentage}
+                                </span>
+                            </td>
+                            <td class="text-end">${numberFormat(row.total_project_budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${row.project_implementation}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                // Show single quarter columns
+                thead = `
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="align-middle">Cost Category</th>
+                            <th class="align-middle text-end">Expenses</th>
+                            <th class="align-middle text-end">Budget</th>
+                            <th class="align-middle text-center">Budgeted (%)</th>
+                            <th class="align-middle text-end">Total Project Budget</th>
+                            <th class="align-middle text-center">Implementation (%)</th>
+                        </tr>
+                    </thead>
+                `;
+
+                tbody = data.report.map(row => {
+                    const pct = parseFloat(row.budgeted_percentage);
+                    const implPct = parseFloat(row.project_implementation);
+
+                    return `
+                        <tr>
+                            <td class="fw-bold">${row.category}</td>
+                            <td class="text-end">${numberFormat(row.expenses)}</td>
+                            <td class="text-end">${numberFormat(row.budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${row.budgeted_percentage}
+                                </span>
+                            </td>
+                            <td class="text-end">${numberFormat(row.total_project_budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${row.project_implementation}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-primary table-striped mb-0">
+                        ${thead}
+                        <tbody>${tbody}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function numberFormat(num) {
+            return new Intl.NumberFormat('en-US').format(num);
+        }
+
+        // Event listeners
+        document.getElementById('filterBtn').addEventListener('click', fetchReport);
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            document.getElementById('project_id').value = '';
+            document.getElementById('division_id').value = '';
+            document.getElementById('district_id').innerHTML = '<option value="">All Districts</option>';
+            document.getElementById('district_id').disabled = true;
+            document.getElementById('quarter').value = 'all';
+            fetchReport();
+        });
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', fetchReport);
+    </script>
 </body>
 </html>

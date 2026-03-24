@@ -253,4 +253,155 @@ class FinancialReportController extends Controller
 
         return view('reports.category_summary', compact('report', 'projects', 'selectedQuarter'));
     }
+
+    /**
+     * AJAX: Get districts by division ID
+     */
+    public function getDistricts(Request $request)
+    {
+        $divisionId = $request->division_id;
+        $districts = District::where('division_id', $divisionId)->orderBy('name')->get();
+        return response()->json($districts);
+    }
+
+    /**
+     * AJAX: Get filtered category summary data
+     */
+    public function categorySummaryAjax(Request $request)
+    {
+        $projectId = $request->project_id;
+        $divisionId = $request->division_id;
+        $districtId = $request->district_id;
+        $selectedQuarter = $request->quarter;
+
+        // If "All" is selected or no quarter, use all quarters mode
+        $showAllQuarters = (!$selectedQuarter || $selectedQuarter === 'all');
+
+        // Individual quarter months (non-cumulative)
+        $quarterMonths = [
+            'Q1' => [7, 8, 9],    // July, August, September
+            'Q2' => [10, 11, 12], // October, November, December
+            'Q3' => [1, 2, 3],    // January, February, March
+            'Q4' => [4, 5, 6],    // April, May, June
+        ];
+
+        // Cumulative quarter months mapping (fiscal year starts July)
+        $cumulativeMonths = [
+            'Q1' => [7, 8, 9],
+            'Q2' => [7, 8, 9, 10, 11, 12],
+            'Q3' => [7, 8, 9, 10, 11, 12, 1, 2, 3],
+            'Q4' => [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+        ];
+
+        // Get all categories and projects
+        $categories = Category::all();
+        $projects = Project::all();
+        $divisions = Division::all();
+        $districts = District::all();
+
+        $report = [];
+
+        // Total project budget (filtered by project if selected)
+        $totalProjectBudgetQuery = YearlyBudget::query()
+            ->when($projectId, fn($q) => $q->where('project_id', $projectId));
+
+        $totalProjectBudget = $totalProjectBudgetQuery->sum('total_amount');
+
+        // Build voucher query base
+        $buildVoucherQuery = function($months) use ($projectId, $divisionId, $districtId) {
+            return VoucherEntry::whereHas('voucher', function ($q) use ($projectId, $divisionId, $districtId, $months) {
+                $q->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                  ->when($divisionId, fn($q) => $q->where('division_id', $divisionId))
+                  ->when($districtId, fn($q) => $q->where('district_id', $districtId))
+                  ->whereIn(DB::raw('MONTH(date)'), $months);
+            });
+        };
+
+        foreach ($categories as $category) {
+
+            if ($showAllQuarters) {
+                // Show all quarters in separate columns
+                $quarters = [];
+                $totalExpenses = 0;
+                
+                foreach ($quarterMonths as $qName => $months) {
+                    $expenses = $buildVoucherQuery($months)
+                        ->where('category_id', $category->id)
+                        ->sum('amount');
+                    
+                    // Budget for this quarter (3 months = 3/12 of yearly budget)
+                    $categoryBudget = YearlyBudget::where('category_id', $category->id)
+                        ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                        ->sum('total_amount') * (3 / 12);
+
+                    $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
+                    
+                    $quarters[$qName] = [
+                        'expenses' => $expenses,
+                        'budget' => $categoryBudget,
+                        'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
+                    ];
+                    
+                    $totalExpenses += $expenses;
+                }
+                
+                // Total budget for this category (full year = all 12 months)
+                $categoryBudgetTotal = YearlyBudget::where('category_id', $category->id)
+                    ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                    ->sum('total_amount');
+
+                $budgetedPercentageTotal = $categoryBudgetTotal > 0 ? ($totalExpenses / $categoryBudgetTotal) * 100 : 0;
+                $projectImplementation = $totalProjectBudget > 0 ? ($totalExpenses / $totalProjectBudget) * 100 : 0;
+
+                $report[] = [
+                    'category' => $category->name,
+                    'quarters' => $quarters,
+                    'total_expenses' => $totalExpenses,
+                    'total_budget' => $categoryBudgetTotal,
+                    'budgeted_percentage' => round($budgetedPercentageTotal, 2) . '%',
+                    'total_project_budget' => $totalProjectBudget,
+                    'project_implementation' => round($projectImplementation, 2) . '%',
+                ];
+            } else {
+                // Show data for selected quarter only (non-cumulative - just that quarter's months)
+                $months = $quarterMonths[$selectedQuarter] ?? $quarterMonths['Q4'];
+
+                $expenses = $buildVoucherQuery($months)
+                    ->where('category_id', $category->id)
+                    ->sum('amount');
+
+                // Budget for this quarter (3 months = 3/12 of yearly budget)
+                $categoryBudget = YearlyBudget::where('category_id', $category->id)
+                    ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                    ->sum('total_amount') * (3 / 12);
+
+                $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
+
+                $categoryBudgetTotal = YearlyBudget::where('category_id', $category->id)
+                    ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+                    ->sum('total_amount');
+
+                $budgetedPercentageTotal = $categoryBudgetTotal > 0 ? ($expenses / $categoryBudgetTotal) * 100 : 0;
+                $projectImplementation = $totalProjectBudget > 0 ? ($expenses / $totalProjectBudget) * 100 : 0;
+
+                $report[] = [
+                    'category' => $category->name,
+                    'expenses' => $expenses,
+                    'budget' => $categoryBudget,
+                    'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
+                    'total_expenses' => $expenses,
+                    'total_budget' => $categoryBudgetTotal,
+                    'budgeted_percentage_total' => round($budgetedPercentageTotal, 2) . '%',
+                    'total_project_budget' => $totalProjectBudget,
+                    'project_implementation' => round($projectImplementation, 2) . '%',
+                ];
+            }
+        }
+
+        return response()->json([
+            'report' => $report,
+            'showAllQuarters' => $showAllQuarters,
+            'selectedQuarter' => $showAllQuarters ? 'All' : $selectedQuarter,
+        ]);
+    }
 }
