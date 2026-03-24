@@ -19,30 +19,6 @@ class FinancialDataSeeder extends Seeder
     public function run()
     {
         // -------------------------
-        // 1. Divisions + Districts
-        // -------------------------
-        // $divisions = [
-        //     'Dhaka' => ['Dhaka', 'Gazipur', 'Narsingdi', 'Tangail', 'Manikganj', 'Madaripur', 'Munshiganj', 'Narayanganj', 'Faridpur', 'Gopalganj'],
-        //     'Chittagong' => ['Chattogram', 'Cox\'s Bazar', 'Comilla', 'Noakhali', 'Feni', 'Brahmanbaria', 'Chandpur', 'Lakshmipur', 'Rangamati', 'Khagrachari', 'Bandarban'],
-        //     'Khulna' => ['Khulna', 'Jessore', 'Satkhira', 'Bagerhat', 'Narail', 'Kushtia', 'Jhenaidah', 'Magura', 'Meherpur'],
-        //     'Barisal' => ['Barishal', 'Barguna', 'Bhola', 'Jhalokati', 'Patuakhali', 'Pirojpur'],
-        //     'Sylhet' => ['Sylhet', 'Moulvibazar', 'Habiganj', 'Sunamganj'],
-        //     'Rajshahi' => ['Rajshahi', 'Bogra', 'Natore', 'Pabna', 'Naogaon', 'Joypurhat', 'Sirajganj', 'Chapainawabganj'],
-        //     'Rangpur' => ['Rangpur', 'Dinajpur', 'Thakurgaon', 'Panchagarh', 'Lalmonirhat', 'Kurigram', 'Nilphamari', 'Gaibandha'],
-        //     'Mymensingh' => ['Mymensingh', 'Jamalpur', 'Netrokona', 'Sherpur'],
-        // ];
-
-        // foreach ($divisions as $divisionName => $districts) {
-        //     $division = Division::firstOrCreate(['name' => $divisionName]);
-        //     foreach ($districts as $districtName) {
-        //         District::firstOrCreate([
-        //             'division_id' => $division->id,
-        //             'name' => $districtName
-        //         ]);
-        //     }
-        // }
-
-        // -------------------------
         // 2. Users
         // -------------------------
         $user = User::factory()->create([
