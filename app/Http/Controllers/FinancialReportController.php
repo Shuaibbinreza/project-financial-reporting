@@ -113,4 +113,106 @@ class FinancialReportController extends Controller
             'report', 'projects', 'categories', 'economicCodes', 'divisions', 'districts'
         ));
     }
+
+    public function cutoffReport(Request $request)
+    {
+        // Cutoff date
+        $cutoffDate = $request->date ? \Carbon\Carbon::parse($request->date) : \Carbon\Carbon::create(2025, 9, 30);
+
+        // Optional project filter
+        $projectId = $request->project_id;
+
+        // Get yearly budgets
+        $yearlyBudgets = \App\Models\YearlyBudget::query()
+            ->when($projectId, fn($q) => $q->where('project_id', $projectId))
+            ->with(['project', 'category'])
+            ->get();
+
+        $report = [];
+
+        foreach ($yearlyBudgets as $budget) {
+
+            $category = $budget->category->name;
+            $projectName = $budget->project->name;
+
+            // Total expenses as of cutoff date
+            $expenses = \App\Models\VoucherEntry::where('category_id', $budget->category_id)
+                ->where('economic_code_id', $budget->economic_code_id)
+                ->whereHas('voucher', function ($q) use ($budget, $cutoffDate) {
+                    $q->where('project_id', $budget->project_id)
+                    ->whereDate('date', '<=', $cutoffDate);
+                })
+                ->sum('amount');
+
+            $budgetAmount = $budget->total_amount;
+            $budgetedPercentage = $budgetAmount > 0 ? ($expenses / $budgetAmount) * 100 : 0;
+
+            // Total project budget
+            $projectTotalBudget = \App\Models\YearlyBudget::where('project_id', $budget->project_id)
+                ->sum('total_amount');
+
+            $projectImplementationPercentage = $projectTotalBudget > 0
+                ? ($expenses / $projectTotalBudget) * 100
+                : 0;
+
+            $report[] = [
+                'project' => $projectName,
+                'category' => $category,
+                'expenses' => $expenses,
+                'budget' => $budgetAmount,
+                'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
+                'total_project_budget' => $projectTotalBudget,
+                'project_implementation' => round($projectImplementationPercentage, 2) . '%',
+            ];
+        }
+
+        return view('reports.cutoff', compact('report', 'cutoffDate'));
+    }
+
+    public function categorySummary(Request $request)
+{
+    // Cutoff date
+    $cutoffDate = $request->date ? \Carbon\Carbon::parse($request->date) : \Carbon\Carbon::create(2025, 9, 30);
+
+    // Optional filters: division/district
+    $divisionIds = $request->division_ids;
+    $districtIds = $request->district_ids;
+
+    // Get all categories
+    $categories = \App\Models\Category::all();
+
+    $report = [];
+
+    // Total project budget (all projects combined)
+    $totalProjectBudget = \App\Models\YearlyBudget::sum('total_amount');
+
+    foreach ($categories as $category) {
+
+        // Total expenses for this category as of cutoff date
+        $expenses = \App\Models\VoucherEntry::where('category_id', $category->id)
+            ->whereHas('voucher', function ($q) use ($cutoffDate, $divisionIds, $districtIds) {
+                $q->whereDate('date', '<=', $cutoffDate)
+                  ->when($divisionIds, fn($q) => $q->whereIn('division_id', $divisionIds))
+                  ->when($districtIds, fn($q) => $q->whereIn('district_id', $districtIds));
+            })
+            ->sum('amount');
+
+        // Total budget for this category (all projects)
+        $categoryBudget = \App\Models\YearlyBudget::where('category_id', $category->id)->sum('total_amount');
+
+        $budgetedPercentage = $categoryBudget > 0 ? ($expenses / $categoryBudget) * 100 : 0;
+        $projectImplementation = $totalProjectBudget > 0 ? ($expenses / $totalProjectBudget) * 100 : 0;
+
+        $report[] = [
+            'category' => $category->name,
+            'expenses' => $expenses,
+            'budget' => $categoryBudget,
+            'budgeted_percentage' => round($budgetedPercentage, 2) . '%',
+            'total_project_budget' => $totalProjectBudget,
+            'project_implementation' => round($projectImplementation, 2) . '%',
+        ];
+    }
+
+    return view('reports.category_summary', compact('report', 'cutoffDate'));
+}
 }
