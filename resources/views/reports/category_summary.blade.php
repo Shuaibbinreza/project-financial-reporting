@@ -265,12 +265,23 @@
 
         container.innerHTML = `
             <div class="table-responsive">
-                <table class="table table-primary table-striped mb-0 report-table">
+                <table class="table table-primary table-striped mb-0 report-table" id="categorySummaryTable">
                     ${thead}
                     <tbody>${tbody}</tbody>
                 </table>
             </div>
         `;
+        
+        // Initialize DataTables after table is rendered
+        initDataTable();
+    }
+
+    function initDataTable() {
+        if ($.fn.DataTable.isDataTable('#categorySummaryTable')) {
+            $('#categorySummaryTable').DataTable().destroy();
+        }
+        
+        $('#categorySummaryTable').DataTable(window.DataTableCommonOptions);
     }
 
     function numberFormat(num) {

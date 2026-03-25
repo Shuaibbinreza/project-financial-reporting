@@ -32,7 +32,7 @@
     <div class="card-body p-0">
         @if(count($report) > 0)
             <div class="table-responsive">
-                <table class="table table-hover table-striped mb-0 report-table">
+                <table class="table table-hover table-striped mb-0 report-table" id="cutoffTable">
                     <thead class="table-dark">
                         <tr>
                             <th>Project</th>
@@ -75,4 +75,6 @@
         @endif
     </div>
 </div>
+@endsection
+
 @endsection
