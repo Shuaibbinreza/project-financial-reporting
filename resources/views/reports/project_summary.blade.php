@@ -207,7 +207,7 @@
             </thead>
         `;
 
-        // Build rows with merged cells (rowspan for project column)
+        // Build rows with merged cells (rowspan for project column) - Total at bottom
         tbody = data.report.map(project => {
             const projectPct = parseFloat(project.budgeted_percentage);
             const implPct = parseFloat(project.project_implementation);
@@ -216,10 +216,56 @@
             const rows = [];
             const rowCount = project.quarters.length + 1;
             
-            // Add project total row first with rowspan
+            // Add quarter rows first
+            project.quarters.forEach((q, index) => {
+                const qPct = parseFloat(q.budgeted_percentage);
+                const implOnTotal = ((q.expenses / totalBudget) * 100).toFixed(2);
+                
+                // First quarter row has project name with rowspan
+                if (index === 0) {
+                    rows.push(`
+                        <tr class="table-secondary">
+                            <td class="align-middle" rowspan="${project.quarters.length}">${project.project}</td>
+                            <td>${q.quarter_name}</td>
+                            <td class="text-end">${numberFormat(q.expenses)}</td>
+                            <td class="text-end">${numberFormat(q.budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${qPct >= 100 ? 'bg-danger' : (qPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${q.budgeted_percentage}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge ${implOnTotal >= 100 ? 'bg-danger' : (implOnTotal >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${implOnTotal}%
+                                </span>
+                            </td>
+                        </tr>
+                    `);
+                } else {
+                    rows.push(`
+                        <tr class="table-secondary">
+                            <td>${q.quarter_name}</td>
+                            <td class="text-end">${numberFormat(q.expenses)}</td>
+                            <td class="text-end">${numberFormat(q.budget)}</td>
+                            <td class="text-center">
+                                <span class="badge ${qPct >= 100 ? 'bg-danger' : (qPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${q.budgeted_percentage}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge ${implOnTotal >= 100 ? 'bg-danger' : (implOnTotal >= 75 ? 'bg-warning' : 'bg-success')}">
+                                    ${implOnTotal}%
+                                </span>
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+            
+            // Add project total row at the bottom (no rowspan)
             rows.push(`
                 <tr class="table-primary fw-bold">
-                    <td class="align-middle" rowspan="${rowCount}">${project.project}</td>
+                    <td>${project.project}</td>
                     <td>Total</td>
                     <td class="text-end">${numberFormat(project.total_expenses)}</td>
                     <td class="text-end">${numberFormat(project.total_budget)}</td>
@@ -235,30 +281,6 @@
                     </td>
                 </tr>
             `);
-            
-            // Add quarter rows
-            project.quarters.forEach(q => {
-                const qPct = parseFloat(q.budgeted_percentage);
-                const implOnTotal = ((q.expenses / totalBudget) * 100).toFixed(2);
-                
-                rows.push(`
-                    <tr class="table-secondary">
-                        <td>${q.quarter_name}</td>
-                        <td class="text-end">${numberFormat(q.expenses)}</td>
-                        <td class="text-end">${numberFormat(q.budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${qPct >= 100 ? 'bg-danger' : (qPct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${q.budgeted_percentage}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge ${implOnTotal >= 100 ? 'bg-danger' : (implOnTotal >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${implOnTotal}%
-                            </span>
-                        </td>
-                    </tr>
-                `);
-            });
 
             return rows.join('');
         }).join('');
