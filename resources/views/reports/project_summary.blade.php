@@ -354,12 +354,12 @@
         URL.revokeObjectURL(url);
     }
     
-    // PDF function - downloads actual PDF file
+    // PDF function - downloads actual PDF file using HTML table conversion
     function pdfTable() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Get table data
+        // Get table element
         const table = document.getElementById('projectSummaryTable');
         const quarterLabel = document.getElementById('quarterLabel').textContent;
         
@@ -372,28 +372,40 @@
         doc.text(`Period: ${quarterLabel}`, 14, 22);
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 27);
         
-        // Prepare table data
-        const rows = [];
-        const headerRow = ['Project', 'Quarter', 'Expense', 'Budget', 'Implementation on Quarterly Budget (%)', 'Implementation on Total Budget (%)'];
+        // Clone the table and prepare it for PDF
+        const tableClone = table.cloneNode(true);
         
-        table.querySelectorAll('tbody tr').forEach(tr => {
-            const cells = tr.querySelectorAll('td');
-            const rowData = [];
-            cells.forEach(cell => {
-                rowData.push(cell.textContent.trim());
-            });
-            if (rowData.length > 0) {
-                rows.push(rowData);
-            }
-        });
-        
-        // Generate table in PDF
+        // Use html() method which preserves rowspan
         doc.autoTable({
-            head: [headerRow],
-            body: rows,
+            html: tableClone,
             startY: 32,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [51, 51, 51] }
+            styles: { 
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            headStyles: { 
+                fillColor: [26, 26, 46],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            // Keep row colors
+            didParseCell: function(data) {
+                if (data.section === 'body') {
+                    // Check row index - alternate coloring
+                    const rowIdx = data.row.index;
+                    // Total rows should have different color
+                    const cellText = data.cell.raw.textContent || '';
+                    if (cellText.includes('Total')) {
+                        data.cell.styles.fillColor = [227, 242, 253];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else {
+                        data.cell.styles.fillColor = [233, 236, 239];
+                    }
+                }
+            },
+            useCss: false,
+            useCellStyles: true
         });
         
         // Download PDF
