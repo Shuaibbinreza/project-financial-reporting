@@ -40,10 +40,9 @@
                 <label for="quarter" class="form-label">Quarter</label>
                 <select name="quarter" id="quarter" class="form-select">
                     <option value="">All Quarters</option>
-                    <option value="Q1" {{ request('quarter') == 'Q1' ? 'selected' : '' }}>Q1</option>
-                    <option value="Q2" {{ request('quarter') == 'Q2' ? 'selected' : '' }}>Q2</option>
-                    <option value="Q3" {{ request('quarter') == 'Q3' ? 'selected' : '' }}>Q3</option>
-                    <option value="Q4" {{ request('quarter') == 'Q4' ? 'selected' : '' }}>Q4</option>
+                    @foreach($quarters as $quarter)
+                        <option value="{{ $quarter->code }}" {{ request('quarter') == $quarter->code ? 'selected' : '' }}>{{ $quarter->name }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-md-3 d-flex align-items-end">

@@ -42,10 +42,9 @@
                 <label for="quarter" class="form-label">Quarter</label>
                 <select name="quarter" id="quarter" class="form-select">
                     <option value="all">All Quarters</option>
-                    <option value="Q4" selected>Q4 (Till June)</option>
-                    <option value="Q3">Q3 (Till March)</option>
-                    <option value="Q2">Q2 (Till December)</option>
-                    <option value="Q1">Q1 (Till September)</option>
+                    @foreach($quarters as $quarter)
+                        <option value="{{ $quarter->code }}" {{ $loop->last ? 'selected' : '' }}>{{ $quarter->name }}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -119,11 +118,10 @@
 
     // Quarter descriptions
     const quarterDescriptions = {
-        'Q1': 'Showing data for Q1 (July - September)',
-        'Q2': 'Showing data for Q2 (October - December)',
-        'Q3': 'Showing data for Q3 (January - March)',
-        'Q4': 'Showing data for Q4 (April - June)',
-        'All': 'Showing total summation of all quarters (Q1 + Q2 + Q3 + Q4)'
+        @foreach($quarters as $quarter)
+        '{{ $quarter->code }}': 'Showing data for {{ $quarter->name }}',
+        @endforeach
+        'All': 'Showing total summation of all quarters'
     };
 
     // Fetch report data via AJAX
@@ -185,83 +183,53 @@
         let thead = '';
         let tbody = '';
 
-        if (data.showAllQuarters) {
-            // Show summation of all quarters (single row format)
-            thead = `
-                <thead class="table-dark">
-                    <tr>
-                        <th class="align-middle">Cost Category</th>
-                        <th class="align-middle text-end">Total Expenses (Q1-Q4)</th>
-                        <th class="align-middle text-end">Total Budget</th>
-                        <th class="align-middle text-center">Budgeted (%)</th>
-                        <th class="align-middle text-end">Total Project Budget</th>
-                        <th class="align-middle text-center">Implementation (%)</th>
-                    </tr>
-                </thead>
+        // Get quarter info for display
+        const quarterName = data.quarterName || 'All Quarters';
+        const asOfDate = data.asOfDate || '';
+        
+        // Split asOfDate into day, month, year for better display
+        const dateParts = asOfDate.split(' ');
+        const day = dateParts[0] || '';
+        const month = dateParts[1] || '';
+        const year = dateParts[2] || '';
+        
+        // Simple table with quarter-specific columns (using <br> for multi-line headers)
+        thead = `
+            <thead class="table-dark">
+                <tr>
+                    <th class="align-middle" style="min-width: 150px;">Cost Category</th>
+                    <th class="align-middle text-end">Expenses<br>as of<br>${day} ${month}<br>${year}</th>
+                    <th class="align-middle text-end">Budget<br>as of<br>${day} ${month}<br>${year}</th>
+                    <th class="align-middle text-center">Budgeted<br>as of<br>${day} ${month}<br>${year} (%)</th>
+                    <th class="align-middle text-end">Total<br>Project<br>Budget</th>
+                    <th class="align-middle text-center">Implementation<br>as of<br>${day} ${month}<br>${year} (%)</th>
+                </tr>
+            </thead>
+        `;
+
+        tbody = data.report.map(row => {
+            const pct = parseFloat(row.budgeted_percentage);
+            const implPct = parseFloat(row.category_implementation);
+
+            return `
+                <tr>
+                    <td class="fw-bold">${row.category}</td>
+                    <td class="text-end">${numberFormat(row.total_expenses)}</td>
+                    <td class="text-end">${numberFormat(row.total_budget)}</td>
+                    <td class="text-center">
+                        <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
+                            ${row.budgeted_percentage}
+                        </span>
+                    </td>
+                    <td class="text-end">${numberFormat(row.total_budget_all)}</td>
+                    <td class="text-center">
+                        <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                            ${row.category_implementation}
+                        </span>
+                    </td>
+                </tr>
             `;
-
-            tbody = data.report.map(row => {
-                const pct = parseFloat(row.budgeted_percentage);
-                const implPct = parseFloat(row.project_implementation);
-
-                return `
-                    <tr>
-                        <td class="fw-bold">${row.category}</td>
-                        <td class="text-end">${numberFormat(row.total_expenses)}</td>
-                        <td class="text-end">${numberFormat(row.total_budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.budgeted_percentage}
-                            </span>
-                        </td>
-                        <td class="text-end">${numberFormat(row.total_project_budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.project_implementation}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            // Show single quarter columns
-            thead = `
-                <thead class="table-dark">
-                    <tr>
-                        <th class="align-middle">Cost Category</th>
-                        <th class="align-middle text-end">Expenses</th>
-                        <th class="align-middle text-end">Budget</th>
-                        <th class="align-middle text-center">Budgeted (%)</th>
-                        <th class="align-middle text-end">Total Project Budget</th>
-                        <th class="align-middle text-center">Implementation (%)</th>
-                    </tr>
-                </thead>
-            `;
-
-            tbody = data.report.map(row => {
-                const pct = parseFloat(row.budgeted_percentage);
-                const implPct = parseFloat(row.project_implementation);
-
-                return `
-                    <tr>
-                        <td class="fw-bold">${row.category}</td>
-                        <td class="text-end">${numberFormat(row.expenses)}</td>
-                        <td class="text-end">${numberFormat(row.budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.budgeted_percentage}
-                            </span>
-                        </td>
-                        <td class="text-end">${numberFormat(row.total_project_budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.project_implementation}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+        }).join('');
 
         container.innerHTML = `
             <div class="table-responsive">
