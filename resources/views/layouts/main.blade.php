@@ -60,6 +60,63 @@
             text-align: center;
         }
 
+        .sidebar .nav-item ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .sidebar .nav-item ul .sidebar-link {
+            padding-left: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .sidebar .nav-item ul .sidebar-link::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            margin-right: 0.5rem;
+        }
+
+        .sidebar-link.has-submenu {
+            justify-content: space-between;
+        }
+
+        .sidebar-link.has-submenu::after {
+            content: "\F282";
+            font-family: "bootstrap-icons";
+            font-size: 0.75rem;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-link.has-submenu[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-link[data-bs-toggle="collapse"] {
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .sidebar-link[data-bs-toggle="collapse"] i.bi-chevron-down {
+            font-size: 0.65rem;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-link[data-bs-toggle="collapse"][aria-expanded="true"] i.bi-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .sidebar .collapse {
+            transition: all 0.3s;
+        }
+
+        .sidebar .collapse.show {
+            margin-bottom: 0.5rem;
+        }
+
 
         }
 

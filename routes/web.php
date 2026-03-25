@@ -45,4 +45,5 @@ Route::prefix('vouchers')->name('vouchers.')->group(function () {
     Route::get('/', [VoucherController::class, 'index'])->name('index');
     Route::get('/data', [VoucherController::class, 'data'])->name('data');
     Route::get('/entries-data', [VoucherController::class, 'entriesData'])->name('entries-data');
+    Route::get('/entries', [VoucherController::class, 'entries'])->name('entries');
 });

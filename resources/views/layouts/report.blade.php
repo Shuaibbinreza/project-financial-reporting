@@ -119,17 +119,15 @@
                         <a class="sidebar-link {{ request()->routeIs('reports.project-summary') ? 'active' : '' }}" href="{{ route('reports.project-summary') }}">
                             <i class="bi bi-briefcase"></i>Project Summary
                         </a>
-                        <ul class="nav flex-column ms-4 mt-1">
-                            <li class="nav-item">
-                                <a class="sidebar-link {{ request()->routeIs('reports.project-spendings') ? 'active' : '' }}" href="{{ route('reports.project-spendings') }}">
-                                    <i class="bi bi-cash-stack"></i>Project Spendings
-                                </a>
-                            </li>
-                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="sidebar-link {{ request()->routeIs('reports.category-summary') ? 'active' : '' }}" href="{{ route('reports.category-summary') }}">
                             <i class="bi bi-pie-chart"></i>Category Summary
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('reports.project-spendings') ? 'active' : '' }}" href="{{ route('reports.project-spendings') }}">
+                            <i class="bi bi-cash-stack"></i>Project Spendings
                         </a>
                     </li>
                     <li class="nav-item">
@@ -141,8 +139,13 @@
                         <span class="sidebar-link text-white-50 small text-uppercase mt-3 mb-2">Vouchers</span>
                     </li>
                     <li class="nav-item">
-                        <a class="sidebar-link {{ request()->routeIs('vouchers.*') ? 'active' : '' }}" href="{{ route('vouchers.index') }}">
+                        <a class="sidebar-link {{ request()->routeIs('vouchers.index') ? 'active' : '' }}" href="{{ route('vouchers.index') }}">
                             <i class="bi bi-receipt"></i>Voucher List
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('vouchers.entries') ? 'active' : '' }}" href="{{ route('vouchers.entries') }}">
+                            <i class="bi bi-list-ul"></i>Voucher Entries
                         </a>
                     </li>
                 </ul>
