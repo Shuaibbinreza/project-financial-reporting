@@ -119,6 +119,13 @@
                         <a class="sidebar-link {{ request()->routeIs('reports.project-summary') ? 'active' : '' }}" href="{{ route('reports.project-summary') }}">
                             <i class="bi bi-briefcase"></i>Project Summary
                         </a>
+                        <ul class="nav flex-column ms-4 mt-1">
+                            <li class="nav-item">
+                                <a class="sidebar-link {{ request()->routeIs('reports.project-spendings') ? 'active' : '' }}" href="{{ route('reports.project-spendings') }}">
+                                    <i class="bi bi-cash-stack"></i>Project Spendings
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="sidebar-link {{ request()->routeIs('reports.category-summary') ? 'active' : '' }}" href="{{ route('reports.category-summary') }}">

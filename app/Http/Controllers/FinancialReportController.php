@@ -314,6 +314,109 @@ class FinancialReportController extends Controller
     }
 
     /**
+     * Project Spendings - Shows all spendings under each project
+     */
+    public function projectSpendings(Request $request)
+    {
+        $projects = Project::orderBy('name')->get();
+        $divisions = Division::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
+        $economicCodes = EconomicCode::orderBy('code')->get();
+
+        return view('reports.project_spendings', [
+            'title' => 'Project Spendings',
+            'breadcrumb' => 'Project Spendings',
+            'icon' => 'bi bi-cash-stack',
+            'description' => 'View all spendings under each project',
+            'projects' => $projects,
+            'divisions' => $divisions,
+            'categories' => $categories,
+            'economicCodes' => $economicCodes
+        ]);
+    }
+
+    /**
+     * AJAX: Get project spendings data
+     */
+    public function projectSpendingsAjax(Request $request)
+    {
+        $projectId = $request->project_id;
+        $divisionId = $request->division_id;
+        $categoryId = $request->category_id;
+        $economicCodeId = $request->economic_code_id;
+        $dateFrom = $request->date_from;
+        $dateTo = $request->date_to;
+
+        $query = VoucherEntry::with(['voucher.project', 'voucher.division', 'category', 'economicCode'])
+            ->select('voucher_entries.*');
+
+        if ($projectId) {
+            $query->whereHas('voucher', function ($q) use ($projectId) {
+                $q->where('project_id', $projectId);
+            });
+        }
+
+        if ($divisionId) {
+            $query->whereHas('voucher', function ($q) use ($divisionId) {
+                $q->where('division_id', $divisionId);
+            });
+        }
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($economicCodeId) {
+            $query->where('economic_code_id', $economicCodeId);
+        }
+
+        if ($dateFrom) {
+            $query->whereHas('voucher', function ($q) use ($dateFrom) {
+                $q->where('date', '>=', $dateFrom);
+            });
+        }
+
+        if ($dateTo) {
+            $query->whereHas('voucher', function ($q) use ($dateTo) {
+                $q->where('date', '<=', $dateTo);
+            });
+        }
+
+        $entries = $query->orderBy('id', 'desc')->get();
+
+        $data = $entries->map(function ($entry) {
+            $voucher = $entry->voucher;
+            return [
+                'id' => $entry->id,
+                'voucher_id' => $voucher ? $voucher->id : null,
+                'voucher_no' => $voucher ? '#' . str_pad($voucher->id, 6, '0', STR_PAD_LEFT) : '-',
+                'voucher_date' => $voucher && $voucher->date ? \Carbon\Carbon::parse($voucher->date)->format('d M Y') : '-',
+                'project_name' => $voucher && $voucher->project ? $voucher->project->name : '-',
+                'division_name' => $voucher && $voucher->division ? $voucher->division->name : '-',
+                'category_name' => $entry->category ? $entry->category->name : '-',
+                'economic_code' => $entry->economicCode ? $entry->economicCode->code : '-',
+                'amount' => number_format($entry->amount, 2),
+                'amount_raw' => $entry->amount
+            ];
+        });
+
+        // Calculate totals per project
+        $projectTotals = [];
+        foreach ($data as $item) {
+            $projectName = $item['project_name'];
+            if (!isset($projectTotals[$projectName])) {
+                $projectTotals[$projectName] = 0;
+            }
+            $projectTotals[$projectName] += $item['amount_raw'];
+        }
+
+        return response()->json([
+            'data' => $data,
+            'projectTotals' => $projectTotals
+        ]);
+    }
+
+    /**
      * Dashboard - Shows overview statistics
      */
     public function dashboard()

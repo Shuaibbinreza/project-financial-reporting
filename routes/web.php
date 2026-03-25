@@ -34,6 +34,8 @@ Route::prefix('reports')->name('reports.')->group(function () {
     // AJAX endpoints
     Route::get('/category-summary/ajax', [FinancialReportController::class, 'categorySummaryAjax'])->name('category-summary-ajax');
     Route::get('/project-summary/ajax', [FinancialReportController::class, 'projectSummaryAjax'])->name('project-summary-ajax');
+    Route::get('/project-spendings', [FinancialReportController::class, 'projectSpendings'])->name('project-spendings');
+    Route::get('/project-spendings/ajax', [FinancialReportController::class, 'projectSpendingsAjax'])->name('project-spendings-ajax');
     Route::get('/get-districts', [ReportController::class, 'getDistricts'])->name('get-districts');
     Route::get('/voucher-summary/data', [ReportController::class, 'voucherSummaryData'])->name('voucher-summary-data');
 });
