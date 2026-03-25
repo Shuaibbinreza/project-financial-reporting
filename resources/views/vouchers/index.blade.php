@@ -16,10 +16,10 @@
         <form method="GET" action="{{ route('vouchers.index') }}" class="row g-3">
             <div class="col-md-3">
                 <label for="project_id" class="form-label">Project</label>
-                <select name="project_id" id="filter_project_id" class="form-select">
+                <select name="project_id[]" id="filter_project_id" class="form-select select2-multiple" multiple>
                     <option value="">All Projects</option>
                     @foreach($projects as $project)
-                        <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                        <option value="{{ $project->id }}" {{ in_array($project->id, request('project_id', [])) ? 'selected' : '' }}>
                             {{ $project->name }}
                         </option>
                     @endforeach
@@ -27,10 +27,10 @@
             </div>
             <div class="col-md-3">
                 <label for="division_id" class="form-label">Division</label>
-                <select name="division_id" id="filter_division_id" class="form-select">
+                <select name="division_id[]" id="filter_division_id" class="form-select select2-multiple" multiple>
                     <option value="">All Divisions</option>
                     @foreach($divisions as $division)
-                        <option value="{{ $division->id }}" {{ request('division_id') == $division->id ? 'selected' : '' }}>
+                        <option value="{{ $division->id }}" {{ in_array($division->id, request('division_id', [])) ? 'selected' : '' }}>
                             {{ $division->name }}
                         </option>
                     @endforeach
@@ -157,6 +157,14 @@ $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#voucherEntriesTable')) {
         $('#voucherEntriesTable').DataTable().destroy();
     }
+
+    // Initialize Select2 for multiple select
+    $('.select2-multiple').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select options',
+        allowClear: true
+    });
+
     initVouchersTable();
     initVoucherEntriesTable();
 });

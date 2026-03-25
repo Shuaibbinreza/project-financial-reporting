@@ -61,29 +61,34 @@ class FinancialReportController extends Controller
         ])->select('voucher_entries.*');
 
         if ($projectId) {
-            $query->whereHas('voucher', function ($q) use ($projectId) {
-                $q->where('project_id', $projectId);
+            $projectIds = is_array($projectId) ? $projectId : [$projectId];
+            $query->whereHas('voucher', function ($q) use ($projectIds) {
+                $q->whereIn('project_id', $projectIds);
             });
         }
 
         if ($divisionId) {
-            $query->whereHas('voucher', function ($q) use ($divisionId) {
-                $q->where('division_id', $divisionId);
+            $divisionIds = is_array($divisionId) ? $divisionId : [$divisionId];
+            $query->whereHas('voucher', function ($q) use ($divisionIds) {
+                $q->whereIn('division_id', $divisionIds);
             });
         }
 
         if ($districtId) {
-            $query->whereHas('voucher', function ($q) use ($districtId) {
-                $q->where('district_id', $districtId);
+            $districtIds = is_array($districtId) ? $districtId : [$districtId];
+            $query->whereHas('voucher', function ($q) use ($districtIds) {
+                $q->whereIn('district_id', $districtIds);
             });
         }
 
         if ($categoryId) {
-            $query->where('category_id', $categoryId);
+            $categoryIds = is_array($categoryId) ? $categoryId : [$categoryId];
+            $query->whereIn('category_id', $categoryIds);
         }
 
         if ($economicCodeId) {
-            $query->where('economic_code_id', $economicCodeId);
+            $economicCodeIds = is_array($economicCodeId) ? $economicCodeId : [$economicCodeId];
+            $query->whereIn('economic_code_id', $economicCodeIds);
         }
 
         // Quarter filter
@@ -360,23 +365,27 @@ class FinancialReportController extends Controller
             ->select('voucher_entries.*');
 
         if ($projectId) {
-            $query->whereHas('voucher', function ($q) use ($projectId) {
-                $q->where('project_id', $projectId);
+            $projectIds = is_array($projectId) ? $projectId : [$projectId];
+            $query->whereHas('voucher', function ($q) use ($projectIds) {
+                $q->whereIn('project_id', $projectIds);
             });
         }
 
         if ($divisionId) {
-            $query->whereHas('voucher', function ($q) use ($divisionId) {
-                $q->where('division_id', $divisionId);
+            $divisionIds = is_array($divisionId) ? $divisionId : [$divisionId];
+            $query->whereHas('voucher', function ($q) use ($divisionIds) {
+                $q->whereIn('division_id', $divisionIds);
             });
         }
 
         if ($categoryId) {
-            $query->where('category_id', $categoryId);
+            $categoryIds = is_array($categoryId) ? $categoryId : [$categoryId];
+            $query->whereIn('category_id', $categoryIds);
         }
 
         if ($economicCodeId) {
-            $query->where('economic_code_id', $economicCodeId);
+            $economicCodeIds = is_array($economicCodeId) ? $economicCodeId : [$economicCodeId];
+            $query->whereIn('economic_code_id', $economicCodeIds);
         }
 
         if ($dateFrom) {

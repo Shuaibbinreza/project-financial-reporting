@@ -36,11 +36,13 @@ class VoucherController extends Controller
 
         // Apply filters
         if ($request->has('project_id') && $request->project_id) {
-            $query->where('project_id', $request->project_id);
+            $projectIds = is_array($request->project_id) ? $request->project_id : [$request->project_id];
+            $query->whereIn('project_id', $projectIds);
         }
 
         if ($request->has('division_id') && $request->division_id) {
-            $query->where('division_id', $request->division_id);
+            $divisionIds = is_array($request->division_id) ? $request->division_id : [$request->division_id];
+            $query->whereIn('division_id', $divisionIds);
         }
 
         if ($request->has('date_from') && $request->date_from) {
@@ -87,23 +89,27 @@ class VoucherController extends Controller
 
         // Apply filters
         if ($request->has('project_id') && $request->project_id) {
-            $query->whereHas('voucher', function ($q) use ($request) {
-                $q->where('project_id', $request->project_id);
+            $projectIds = is_array($request->project_id) ? $request->project_id : [$request->project_id];
+            $query->whereHas('voucher', function ($q) use ($projectIds) {
+                $q->whereIn('project_id', $projectIds);
             });
         }
 
         if ($request->has('division_id') && $request->division_id) {
-            $query->whereHas('voucher', function ($q) use ($request) {
-                $q->where('division_id', $request->division_id);
+            $divisionIds = is_array($request->division_id) ? $request->division_id : [$request->division_id];
+            $query->whereHas('voucher', function ($q) use ($divisionIds) {
+                $q->whereIn('division_id', $divisionIds);
             });
         }
 
         if ($request->has('category_id') && $request->category_id) {
-            $query->where('category_id', $request->category_id);
+            $categoryIds = is_array($request->category_id) ? $request->category_id : [$request->category_id];
+            $query->whereIn('category_id', $categoryIds);
         }
 
         if ($request->has('economic_code_id') && $request->economic_code_id) {
-            $query->where('economic_code_id', $request->economic_code_id);
+            $economicCodeIds = is_array($request->economic_code_id) ? $request->economic_code_id : [$request->economic_code_id];
+            $query->whereIn('economic_code_id', $economicCodeIds);
         }
 
         $entries = $query->orderBy('id', 'desc')->get();

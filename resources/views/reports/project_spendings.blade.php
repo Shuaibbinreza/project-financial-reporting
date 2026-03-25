@@ -14,59 +14,59 @@
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('reports.project-spendings') }}" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="project_id" class="form-label">Project</label>
-                <select name="project_id" id="filter_project_id" class="form-select">
+                <select name="project_id[]" id="filter_project_id" class="form-select select2-multiple" multiple>
                     <option value="">All Projects</option>
                     @foreach($projects as $project)
-                        <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                        <option value="{{ $project->id }}" {{ in_array($project->id, request('project_id', [])) ? 'selected' : '' }}>
                             {{ $project->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="division_id" class="form-label">Division</label>
-                <select name="division_id" id="filter_division_id" class="form-select">
+                <select name="division_id[]" id="filter_division_id" class="form-select select2-multiple" multiple>
                     <option value="">All Divisions</option>
                     @foreach($divisions as $division)
-                        <option value="{{ $division->id }}" {{ request('division_id') == $division->id ? 'selected' : '' }}>
+                        <option value="{{ $division->id }}" {{ in_array($division->id, request('division_id', [])) ? 'selected' : '' }}>
                             {{ $division->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="category_id" class="form-label">Category</label>
-                <select name="category_id" id="filter_category_id" class="form-select">
+                <select name="category_id[]" id="filter_category_id" class="form-select select2-multiple" multiple>
                     <option value="">All Categories</option>
                     @foreach($categories as $category)
-                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                        <option value="{{ $category->id }}" {{ in_array($category->id, request('category_id', [])) ? 'selected' : '' }}>
                             {{ $category->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="economic_code_id" class="form-label">Economic Code</label>
-                <select name="economic_code_id" id="filter_economic_code_id" class="form-select">
+                <select name="economic_code_id[]" id="filter_economic_code_id" class="form-select select2-multiple" multiple>
                     <option value="">All Economic Codes</option>
                     @foreach($economicCodes as $ec)
-                        <option value="{{ $ec->id }}" {{ request('economic_code_id') == $ec->id ? 'selected' : '' }}>
+                        <option value="{{ $ec->id }}" {{ in_array($ec->id, request('economic_code_id', [])) ? 'selected' : '' }}>
                             {{ $ec->code }} - {{ $ec->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="date_from" class="form-label">Date From</label>
                 <input type="date" name="date_from" id="filter_date_from" class="form-control" value="{{ request('date_from') }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="date_to" class="form-label">Date To</label>
                 <input type="date" name="date_to" id="filter_date_to" class="form-control" value="{{ request('date_to') }}">
             </div>
-            <div class="col-md-6 d-flex align-items-end">
+            <div class="col-md-12 d-flex align-items-end">
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-primary" onclick="applyFilters()">
                         <i class="bi bi-filter me-1"></i>Filter
@@ -154,6 +154,13 @@ let spendingsTable;
 let projectTotals = {};
 
 $(document).ready(function() {
+    // Initialize Select2 for multiple select
+    $('.select2-multiple').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select options',
+        allowClear: true
+    });
+
     initSpendingsTable();
 });
 
@@ -238,13 +245,13 @@ function applyFilters() {
 function updateSummary(data) {
     let total = 0;
     let projectCount = 0;
-    
+
     // Calculate totals
     for (let key in projectTotals) {
         total += projectTotals[key];
         projectCount++;
     }
-    
+
     $('#totalAmount').text('৳ ' + numberFormat(total));
     $('#projectCount').text(projectCount);
 }
@@ -256,7 +263,7 @@ function numberFormat(num) {
 function showProjectSummary() {
     let html = '';
     let grandTotal = 0;
-    
+
     for (let projectName in projectTotals) {
         html += '<tr>';
         html += '<td>' + projectName + '</td>';
@@ -264,11 +271,11 @@ function showProjectSummary() {
         html += '</tr>';
         grandTotal += projectTotals[projectName];
     }
-    
+
     if (html === '') {
         html = '<tr><td colspan="2" class="text-center text-muted">No data available</td></tr>';
     }
-    
+
     $('#projectSummaryBody').html(html);
     $('#grandTotal').text('৳ ' + numberFormat(grandTotal));
     $('#projectSummaryModal').modal('show');

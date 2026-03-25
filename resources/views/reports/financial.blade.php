@@ -16,10 +16,9 @@
         <form method="GET" action="{{ route('reports.financial') }}" class="row g-3">
             <div class="col-md-2">
                 <label for="project_id" class="form-label">Project</label>
-                <select name="project_id" id="project_id" class="form-select">
-                    <option value="">All Projects</option>
+                <select name="project_id[]" id="project_id" class="form-select select2-multiple" multiple>
                     @foreach($projects as $project)
-                        <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                        <option value="{{ $project->id }}" {{ in_array($project->id, request('project_id', [])) ? 'selected' : '' }}>
                             {{ $project->name }}
                         </option>
                     @endforeach
@@ -27,10 +26,9 @@
             </div>
             <div class="col-md-2">
                 <label for="division_id" class="form-label">Division</label>
-                <select name="division_id" id="division_id" class="form-select">
-                    <option value="">All Divisions</option>
+                <select name="division_id[]" id="division_id" class="form-select select2-multiple" multiple>
                     @foreach($divisions as $division)
-                        <option value="{{ $division->id }}" {{ request('division_id') == $division->id ? 'selected' : '' }}>
+                        <option value="{{ $division->id }}" {{ in_array($division->id, request('division_id', [])) ? 'selected' : '' }}>
                             {{ $division->name }}
                         </option>
                     @endforeach
@@ -38,10 +36,9 @@
             </div>
             <div class="col-md-2">
                 <label for="district_id" class="form-label">District</label>
-                <select name="district_id" id="district_id" class="form-select">
-                    <option value="">All Districts</option>
+                <select name="district_id[]" id="district_id" class="form-select select2-multiple" multiple>
                     @foreach($districts as $district)
-                        <option value="{{ $district->id }}" {{ request('district_id') == $district->id ? 'selected' : '' }}>
+                        <option value="{{ $district->id }}" {{ in_array($district->id, request('district_id', [])) ? 'selected' : '' }}>
                             {{ $district->name }}
                         </option>
                     @endforeach
@@ -49,10 +46,9 @@
             </div>
             <div class="col-md-2">
                 <label for="category_id" class="form-label">Category</label>
-                <select name="category_id" id="category_id" class="form-select">
-                    <option value="">All Categories</option>
+                <select name="category_id[]" id="category_id" class="form-select select2-multiple" multiple>
                     @foreach($categories as $category)
-                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                        <option value="{{ $category->id }}" {{ in_array($category->id, request('category_id', [])) ? 'selected' : '' }}>
                             {{ $category->name }}
                         </option>
                     @endforeach
@@ -60,10 +56,9 @@
             </div>
             <div class="col-md-2">
                 <label for="economic_code_id" class="form-label">Economic Code</label>
-                <select name="economic_code_id" id="economic_code_id" class="form-select">
-                    <option value="">All Codes</option>
+                <select name="economic_code_id[]" id="economic_code_id" class="form-select select2-multiple" multiple>
                     @foreach($economicCodes as $code)
-                        <option value="{{ $code->id }}" {{ request('economic_code_id') == $code->id ? 'selected' : '' }}>
+                        <option value="{{ $code->id }}" {{ in_array($code->id, request('economic_code_id', [])) ? 'selected' : '' }}>
                             {{ $code->code }}
                         </option>
                     @endforeach
@@ -163,6 +158,14 @@ $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#financialTable')) {
         $('#financialTable').DataTable().destroy();
     }
+
+    // Initialize Select2 for multiple select
+    $('.select2-multiple').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select options',
+        allowClear: true
+    });
+
     initFinancialTable();
 });
 
