@@ -30,6 +30,12 @@ class FinancialReportService
         // Get quarters from database for display names
         $quarters = Quarter::orderBy('quarter_number')->get();
 
+        // Filter to only selected quarter if not "all"
+        $filteredQuarters = $quarters;
+        if (!$showAllQuarters) {
+            $filteredQuarters = $quarters->where('code', $selectedQuarter);
+        }
+
         // Get all projects
         $projects = Project::all();
 
@@ -43,7 +49,10 @@ class FinancialReportService
             $projectTotalExpenses = 0;
             $projectBudget = YearlyBudget::where('project_id', $project->id)->sum('total_amount');
 
-            foreach ($quarters as $quarter) {
+            // Calculate total for the selected quarters (or all)
+            $totalBudgetForSelectedQuarters = 0;
+
+            foreach ($filteredQuarters as $quarter) {
                 $qCode = $quarter->code;
                 $months = $this->quarterMonths[$qCode] ?? [];
 
@@ -64,10 +73,12 @@ class FinancialReportService
                 ];
 
                 $projectTotalExpenses += $expenses;
+                $totalBudgetForSelectedQuarters += $quarterBudget;
             }
 
-            // Calculate project totals
-            $budgetedPercentageTotal = $projectBudget > 0 ? ($projectTotalExpenses / $projectBudget) * 100 : 0;
+            // Calculate project totals - use filtered quarters budget if quarter selected
+            $budgetForCalc = $showAllQuarters ? $projectBudget : $totalBudgetForSelectedQuarters;
+            $budgetedPercentageTotal = $budgetForCalc > 0 ? ($projectTotalExpenses / $budgetForCalc) * 100 : 0;
             $projectImplementation = $totalBudget > 0 ? ($projectTotalExpenses / $totalBudget) * 100 : 0;
 
             $report[] = [
@@ -82,10 +93,21 @@ class FinancialReportService
             ];
         }
 
+        // Get selected quarter name for display
+        $selectedQuarterName = 'All Quarters';
+        if (!$showAllQuarters) {
+            $selectedQuarterObj = $quarters->where('code', $selectedQuarter)->first();
+            if ($selectedQuarterObj) {
+                $selectedQuarterName = $selectedQuarterObj->name;
+            }
+        }
+
         return [
             'report' => $report,
             'quarters' => $quarters->pluck('name', 'code')->toArray(),
             'showAllQuarters' => $showAllQuarters,
+            'selectedQuarter' => $selectedQuarter,
+            'selectedQuarterName' => $selectedQuarterName,
         ];
     }
 

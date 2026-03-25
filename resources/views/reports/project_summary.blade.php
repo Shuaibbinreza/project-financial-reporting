@@ -52,10 +52,9 @@
                 <label for="quarter" class="form-label">Quarter</label>
                 <select name="quarter" id="quarter" class="form-select">
                     <option value="all">All Quarters</option>
-                    <option value="Q4" selected>Q4 (April - June)</option>
-                    <option value="Q3">Q3 (January - March)</option>
-                    <option value="Q2">Q2 (October - December)</option>
-                    <option value="Q1">Q1 (July - September)</option>
+                    @foreach($quarters as $quarter)
+                        <option value="{{ $quarter->code }}" {{ $loop->last ? 'selected' : '' }}>{{ $quarter->name }}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -129,11 +128,10 @@
 
     // Quarter descriptions
     const quarterDescriptions = {
-        'Q1': 'Showing data for Q1 (July - September)',
-        'Q2': 'Showing data for Q2 (October - December)',
-        'Q3': 'Showing data for Q3 (January - March)',
-        'Q4': 'Showing data for Q4 (April - June)',
-        'All': 'Showing total summation of all quarters (Q1 + Q2 + Q3 + Q4)'
+        @foreach($quarters as $quarter)
+        '{{ $quarter->code }}': 'Showing data for {{ $quarter->name }}',
+        @endforeach
+        'All': 'Showing total summation of all quarters'
     };
 
     // Fetch report data via AJAX
@@ -172,8 +170,8 @@
     }
 
     function updateHeader(data) {
-        const quarter = data.selectedQuarter;
-        document.getElementById('quarterLabel').textContent = quarter;
+        const quarterLabel = data.selectedQuarterName || (data.showAllQuarters ? 'All Quarters' : data.selectedQuarter);
+        document.getElementById('quarterLabel').textContent = quarterLabel;
         document.getElementById('projectCount').textContent = `${data.report.length} Projects`;
     }
 
@@ -193,83 +191,75 @@
         let thead = '';
         let tbody = '';
 
-        if (data.showAllQuarters) {
-            // Show summation of all quarters (single row format)
-            thead = `
-                <thead class="table-dark">
-                    <tr>
-                        <th class="align-middle">Project Name</th>
-                        <th class="align-middle text-end">Total Expenses (Q1-Q4)</th>
-                        <th class="align-middle text-end">Total Budget</th>
-                        <th class="align-middle text-center">Budgeted (%)</th>
-                        <th class="align-middle text-end">Total Budget (All Projects)</th>
-                        <th class="align-middle text-center">Implementation (%)</th>
-                    </tr>
-                </thead>
-            `;
+        // Table with merged cells (rowspan for project column)
+        thead = `
+            <thead class="table-dark">
+                <tr>
+                    <th class="align-middle">Project</th>
+                    <th class="align-middle">Quarter</th>
+                    <th class="align-middle text-end">Expense</th>
+                    <th class="align-middle text-end">Budget</th>
+                    <th class="align-middle text-center">Implementation on<br>Quarterly Budget (%)</th>
+                    <th class="align-middle text-center">Implementation on<br>Total Budget (%)</th>
+                </tr>
+            </thead>
+        `;
 
-            tbody = data.report.map(row => {
-                const pct = parseFloat(row.budgeted_percentage);
-                const implPct = parseFloat(row.project_implementation);
-
-                return `
-                    <tr>
-                        <td class="fw-bold">${row.project}</td>
-                        <td class="text-end">${numberFormat(row.expenses)}</td>
-                        <td class="text-end">${numberFormat(row.budget)}</td>
+        // Build rows with merged cells using rowspan
+        tbody = data.report.map(project => {
+            const projectPct = parseFloat(project.budgeted_percentage);
+            const implPct = parseFloat(project.project_implementation);
+            const totalBudget = project.total_budget_all || 1;
+            
+            const rows = [];
+            const rowCount = project.quarters.length + 1; // +1 for total row
+            
+            // Add project total row with rowspan
+            rows.push(`
+                <tr class="table-primary fw-bold">
+                    <td class="align-middle" rowspan="${rowCount}">${project.project}</td>
+                    <td>Total</td>
+                    <td class="text-end">${numberFormat(project.total_expenses)}</td>
+                    <td class="text-end">${numberFormat(project.total_budget)}</td>
+                    <td class="text-center">
+                        <span class="badge ${projectPct >= 100 ? 'bg-danger' : (projectPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                            ${project.budgeted_percentage}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                            ${project.project_implementation}
+                        </span>
+                    </td>
+                </tr>
+            `);
+            
+            // Add quarter rows (no project cell - it's merged)
+            project.quarters.forEach(q => {
+                const qPct = parseFloat(q.budgeted_percentage);
+                const implOnTotal = ((q.expenses / totalBudget) * 100).toFixed(2);
+                
+                rows.push(`
+                    <tr class="table-secondary">
+                        <td>${q.quarter_name}</td>
+                        <td class="text-end">${numberFormat(q.expenses)}</td>
+                        <td class="text-end">${numberFormat(q.budget)}</td>
                         <td class="text-center">
-                            <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.budgeted_percentage}
+                            <span class="badge ${qPct >= 100 ? 'bg-danger' : (qPct >= 75 ? 'bg-warning' : 'bg-success')}">
+                                ${q.budgeted_percentage}
                             </span>
                         </td>
-                        <td class="text-end">${numberFormat(row.total_budget)}</td>
                         <td class="text-center">
-                            <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.project_implementation}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            // Show single quarter columns
-            thead = `
-                <thead class="table-dark">
-                    <tr>
-                        <th class="align-middle">Project Name</th>
-                        <th class="align-middle text-end">Expenses</th>
-                        <th class="align-middle text-end">Budget</th>
-                        <th class="align-middle text-center">Budgeted (%)</th>
-                        <th class="align-middle text-end">Total Budget (All Projects)</th>
-                        <th class="align-middle text-center">Implementation (%)</th>
-                    </tr>
-                </thead>
-            `;
-
-            tbody = data.report.map(row => {
-                const pct = parseFloat(row.budgeted_percentage);
-                const implPct = parseFloat(row.project_implementation);
-
-                return `
-                    <tr>
-                        <td class="fw-bold">${row.project}</td>
-                        <td class="text-end">${numberFormat(row.expenses)}</td>
-                        <td class="text-end">${numberFormat(row.budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${pct >= 100 ? 'bg-danger' : (pct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.budgeted_percentage}
-                            </span>
-                        </td>
-                        <td class="text-end">${numberFormat(row.total_budget_all || row.total_budget)}</td>
-                        <td class="text-center">
-                            <span class="badge ${implPct >= 100 ? 'bg-danger' : (implPct >= 75 ? 'bg-warning' : 'bg-success')}">
-                                ${row.project_implementation}
+                            <span class="badge ${implOnTotal >= 100 ? 'bg-danger' : (implOnTotal >= 75 ? 'bg-warning' : 'bg-success')}">
+                                ${implOnTotal}%
                             </span>
                         </td>
                     </tr>
-                `;
-            }).join('');
-        }
+                `);
+            });
+
+            return rows.join('');
+        }).join('');
 
         container.innerHTML = `
             <div class="table-responsive">
@@ -285,11 +275,86 @@
     }
 
     function initDataTable() {
-        if ($.fn.DataTable.isDataTable('#projectSummaryTable')) {
-            $('#projectSummaryTable').DataTable().destroy();
+        // Note: DataTables is disabled for this table due to merged cells (rowspan)
+        // DataTables doesn't support rowspan/colspan - using custom export instead
+        
+        // Add custom export buttons manually
+        const tableId = 'projectSummaryTable';
+        const container = document.querySelector(`#${tableId}`).parentNode;
+        
+        // Remove existing buttons if any
+        const existingButtons = container.previousElementSibling;
+        if (existingButtons && existingButtons.classList.contains('dt-buttons')) {
+            existingButtons.remove();
         }
         
-        $('#projectSummaryTable').DataTable(window.DataTableCommonOptions);
+        // Add export buttons
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'dt-buttons mb-2';
+        buttonsDiv.innerHTML = `
+            <button class="btn btn-secondary dt-button" onclick="exportTable('copy')"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="btn btn-success dt-button" onclick="exportTable('excel')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn btn-info dt-button" onclick="exportTable('csv')"><i class="bi bi-file-earmark-text"></i> CSV</button>
+            <button class="btn btn-danger dt-button" onclick="exportTable('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-primary dt-button" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+        `;
+        
+        // Insert buttons before table container
+        container.parentNode.insertBefore(buttonsDiv, container);
+    }
+    
+    // Custom export functions for tables with merged cells
+    function exportTable(type) {
+        const table = document.getElementById('projectSummaryTable');
+        
+        if (type === 'copy') {
+            // Copy table text to clipboard
+            let text = '';
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                let rowText = [];
+                cells.forEach(cell => rowText.push(cell.textContent.trim()));
+                text += rowText.join('\t') + '\n';
+            });
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Table copied to clipboard!');
+            });
+        } else if (type === 'csv') {
+            // Export as CSV
+            let csv = '';
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                let rowData = [];
+                cells.forEach(cell => rowData.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"'));
+                csv += rowData.join(',') + '\r\n';
+            });
+            downloadFile(csv, 'project_summary.csv', 'text/csv');
+        } else if (type === 'excel') {
+            // Export as Excel (using HTML table)
+            const html = table.outerHTML;
+            const blob = new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' + html + '</body></html>'], {type: 'application/vnd.ms-excel'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'project_summary.xls';
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (type === 'pdf') {
+            // Print (which can be saved as PDF)
+            window.print();
+        }
+    }
+    
+    function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], {type: mimeType});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     function numberFormat(num) {
