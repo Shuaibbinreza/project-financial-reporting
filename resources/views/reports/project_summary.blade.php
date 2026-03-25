@@ -97,7 +97,6 @@
 @section('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
-<script src="{{ asset('js/project-summary.js') }}"></script>
 <script>
     // Get districts by division (cascading dropdown)
     document.getElementById('division_id').addEventListener('change', function() {
@@ -299,7 +298,37 @@
         initDataTable();
     }
 
-    // All pagination and export functions moved to public/js/project-summary.js
+    // Initialize export buttons and pagination
+    function initDataTable() {
+        const tableId = 'projectSummaryTable';
+        const container = document.querySelector(`#${tableId}`).parentNode;
+
+        // Remove existing buttons if any
+        const existingButtons = container.previousElementSibling;
+        if (existingButtons && existingButtons.classList.contains('dt-buttons')) {
+            existingButtons.remove();
+        }
+
+        // Add export buttons
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'dt-buttons mb-2';
+        buttonsDiv.innerHTML = `
+            <button class="btn btn-secondary dt-button" onclick="copyTable()"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="btn btn-success dt-button" onclick="excelTable()"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn btn-info dt-button" onclick="csvTable()"><i class="bi bi-file-earmark-text"></i> CSV</button>
+            <button class="btn btn-danger dt-button" onclick="pdfTable()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-primary dt-button" onclick="printTable()"><i class="bi bi-printer"></i> Print</button>
+        `;
+
+        // Insert buttons before table container
+        container.parentNode.insertBefore(buttonsDiv, container);
+
+        // Initialize pagination
+        initPagination();
+    }
+
+    // Copy function
+    function copyTable() {
         const table = document.getElementById('projectSummaryTable');
         let text = '';
         const rows = table.querySelectorAll('tr');
@@ -547,6 +576,11 @@
         `;
         
         container.parentNode.insertBefore(paginationDiv, container.nextSibling);
+    }
+
+    // Number format function for template literals
+    function numberFormat(num) {
+        return new Intl.NumberFormat('en-US').format(num);
     }
     
     function generatePageNumbers(totalPages) {
