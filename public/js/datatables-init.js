@@ -4,32 +4,32 @@
  * Handles both static and dynamically loaded tables
  */
 $(document).ready(function() {
-    // Common button configuration
+    // Common button configuration - matching project spendings page
     var commonButtons = [
         {
             extend: 'copy',
-            className: 'btn btn-secondary',
-            text: '<i class="bi bi-clipboard"></i> Copy'
+            className: 'btn btn-secondary btn-sm',
+            text: '<i class="bi bi-clipboard me-1"></i> Copy'
         },
         {
             extend: 'excel',
-            className: 'btn btn-success',
-            text: '<i class="bi bi-file-earmark-excel"></i> Excel'
+            className: 'btn btn-success btn-sm',
+            text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel'
         },
         {
             extend: 'csv',
-            className: 'btn btn-info',
-            text: '<i class="bi bi-file-earmark-text"></i> CSV'
+            className: 'btn btn-info btn-sm',
+            text: '<i class="bi bi-file-earmark-text me-1"></i> CSV'
         },
         {
             extend: 'pdf',
-            className: 'btn btn-danger',
-            text: '<i class="bi bi-file-earmark-pdf"></i> PDF'
+            className: 'btn btn-danger btn-sm',
+            text: '<i class="bi bi-file-earmark-pdf me-1"></i> PDF'
         },
         {
             extend: 'print',
-            className: 'btn btn-primary',
-            text: '<i class="bi bi-printer"></i> Print'
+            className: 'btn btn-warning btn-sm',
+            text: '<i class="bi bi-printer me-1"></i> Print'
         }
     ];
 

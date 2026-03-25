@@ -203,12 +203,9 @@ function initVouchersTable() {
         ],
         order: [[1, 'desc']],
         dom: 'Blfrtip',
-        buttons: [
-            'copy', 'excel', 'csv', 'pdf', 'print'
-        ],
-        language: {
-            emptyTable: 'No vouchers found'
-        }
+        buttons: window.DataTableCommonOptions.buttons,
+        language: window.DataTableCommonOptions.language,
+        initComplete: window.DataTableCommonOptions.initComplete,
     });
 
     // Update count after table is loaded
@@ -239,12 +236,9 @@ function initVoucherEntriesTable() {
         ],
         order: [[0, 'desc']],
         dom: 'Blfrtip',
-        buttons: [
-            'copy', 'excel', 'csv', 'pdf', 'print'
-        ],
-        language: {
-            emptyTable: 'No voucher entries found'
-        }
+        buttons: window.DataTableCommonOptions.buttons,
+        language: window.DataTableCommonOptions.language,
+        initComplete: window.DataTableCommonOptions.initComplete,
     });
 
     // Update count after table is loaded

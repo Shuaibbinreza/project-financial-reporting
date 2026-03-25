@@ -211,12 +211,9 @@ function initFinancialTable() {
         ],
         order: [[1, 'desc']],
         dom: 'Blfrtip',
-        buttons: [
-            'copy', 'excel', 'csv', 'pdf', 'print'
-        ],
-        language: {
-            emptyTable: 'No spending data available for the selected filters'
-        }
+        buttons: window.DataTableCommonOptions.buttons,
+        language: window.DataTableCommonOptions.language,
+        initComplete: window.DataTableCommonOptions.initComplete,
     });
 
     // Update counts after table is loaded
