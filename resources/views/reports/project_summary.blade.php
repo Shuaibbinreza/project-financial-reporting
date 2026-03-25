@@ -97,6 +97,7 @@
 @section('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+<script src="{{ asset('js/project-summary.js') }}"></script>
 <script>
     // Get districts by division (cascading dropdown)
     document.getElementById('division_id').addEventListener('change', function() {
@@ -298,37 +299,7 @@
         initDataTable();
     }
 
-    function initDataTable() {
-        // Note: DataTables cannot be used with merged cells (rowspan)
-        // Using custom export buttons instead
-        
-        // Add custom export buttons
-        const tableId = 'projectSummaryTable';
-        const container = document.querySelector(`#${tableId}`).parentNode;
-        
-        // Remove existing buttons if any
-        const existingButtons = container.previousElementSibling;
-        if (existingButtons && existingButtons.classList.contains('dt-buttons')) {
-            existingButtons.remove();
-        }
-        
-        // Add export buttons
-        const buttonsDiv = document.createElement('div');
-        buttonsDiv.className = 'dt-buttons mb-2';
-        buttonsDiv.innerHTML = `
-            <button class="btn btn-secondary dt-button" onclick="copyTable()"><i class="bi bi-clipboard"></i> Copy</button>
-            <button class="btn btn-success dt-button" onclick="excelTable()"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-            <button class="btn btn-info dt-button" onclick="csvTable()"><i class="bi bi-file-earmark-text"></i> CSV</button>
-            <button class="btn btn-danger dt-button" onclick="pdfTable()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
-            <button class="btn btn-primary dt-button" onclick="printTable()"><i class="bi bi-printer"></i> Print</button>
-        `;
-        
-        // Insert buttons before table container
-        container.parentNode.insertBefore(buttonsDiv, container);
-    }
-    
-    // Copy function
-    function copyTable() {
+    // All pagination and export functions moved to public/js/project-summary.js
         const table = document.getElementById('projectSummaryTable');
         let text = '';
         const rows = table.querySelectorAll('tr');
@@ -490,10 +461,110 @@
         }, 250);
     }
     
-    function numberFormat(num) {
-        return new Intl.NumberFormat('en-US').format(num);
+    // Pagination
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    let allRows = [];
+    
+    function initPagination() {
+        const table = document.getElementById('projectSummaryTable');
+        if (!table) return;
+        
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        // Store all rows
+        allRows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Show first page
+        showPage(1);
     }
-
+    
+    function showPage(page) {
+        currentPage = page;
+        const table = document.getElementById('projectSummaryTable');
+        if (!table) return;
+        
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        // Hide all rows first
+        allRows.forEach(row => row.style.display = 'none');
+        
+        // Calculate start and end indices
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        
+        // Show rows for current page
+        for (let i = start; i < end && i < allRows.length; i++) {
+            allRows[i].style.display = '';
+        }
+        
+        // Update pagination controls
+        updatePaginationControls();
+    }
+    
+    function updatePaginationControls() {
+        const table = document.getElementById('projectSummaryTable');
+        if (!table) return;
+        
+        const container = table.parentNode;
+        
+        // Remove existing pagination
+        const existingPagination = container.nextElementSibling;
+        if (existingPagination && existingPagination.classList.contains('pagination-wrapper')) {
+            existingPagination.remove();
+        }
+        
+        const totalPages = Math.ceil(allRows.length / rowsPerPage);
+        
+        if (totalPages <= 1) return;
+        
+        // Create pagination controls
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = 'pagination-wrapper mt-3 d-flex justify-content-between align-items-center';
+        
+        const showingStart = (currentPage - 1) * rowsPerPage + 1;
+        const showingEnd = Math.min(currentPage * rowsPerPage, allRows.length);
+        
+        paginationDiv.innerHTML = `
+            <div class="text-muted small">Showing ${showingStart} to ${showingEnd} of ${allRows.length} entries</div>
+            <ul class="pagination mb-0">
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(1)">First</a>
+                </li>
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${currentPage - 1})">Previous</a>
+                </li>
+                ${generatePageNumbers(totalPages)}
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${currentPage + 1})">Next</a>
+                </li>
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${totalPages})">Last</a>
+                </li>
+            </ul>
+        `;
+        
+        container.parentNode.insertBefore(paginationDiv, container.nextSibling);
+    }
+    
+    function generatePageNumbers(totalPages) {
+        let html = '';
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(totalPages, start + maxVisible - 1);
+        
+        if (end - start < maxVisible - 1) {
+            start = Math.max(1, end - maxVisible + 1);
+        }
+        
+        for (let i = start; i <= end; i++) {
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); showPage(${i})">${i}</a></li>`;
+        }
+        return html;
+    }
+    
     // Event listeners
     document.getElementById('filterBtn').addEventListener('click', fetchReport);
 
