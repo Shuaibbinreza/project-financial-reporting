@@ -155,16 +155,6 @@
                         </h1>
                         <p class="mb-0 opacity-75">{{ $description ?? 'View and filter financial data' }}</p>
                     </div>
-                    <div class="col-auto">
-                        <div class="btn-group">
-                            <button class="btn btn-outline-light" onclick="window.print()">
-                                <i class="bi bi-printer me-1"></i>Print
-                            </button>
-                            <button class="btn btn-outline-light" id="exportBtn">
-                                <i class="bi bi-download me-1"></i>Export
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 

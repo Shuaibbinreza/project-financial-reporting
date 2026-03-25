@@ -95,6 +95,8 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 <script>
     // Get districts by division (cascading dropdown)
     document.getElementById('division_id').addEventListener('change', function() {
@@ -205,16 +207,16 @@
             </thead>
         `;
 
-        // Build rows with merged cells using rowspan
+        // Build rows with merged cells (rowspan for project column)
         tbody = data.report.map(project => {
             const projectPct = parseFloat(project.budgeted_percentage);
             const implPct = parseFloat(project.project_implementation);
             const totalBudget = project.total_budget_all || 1;
             
             const rows = [];
-            const rowCount = project.quarters.length + 1; // +1 for total row
+            const rowCount = project.quarters.length + 1;
             
-            // Add project total row with rowspan
+            // Add project total row first with rowspan
             rows.push(`
                 <tr class="table-primary fw-bold">
                     <td class="align-middle" rowspan="${rowCount}">${project.project}</td>
@@ -234,7 +236,7 @@
                 </tr>
             `);
             
-            // Add quarter rows (no project cell - it's merged)
+            // Add quarter rows
             project.quarters.forEach(q => {
                 const qPct = parseFloat(q.budgeted_percentage);
                 const implOnTotal = ((q.expenses / totalBudget) * 100).toFixed(2);
@@ -275,10 +277,10 @@
     }
 
     function initDataTable() {
-        // Note: DataTables is disabled for this table due to merged cells (rowspan)
-        // DataTables doesn't support rowspan/colspan - using custom export instead
+        // Note: DataTables cannot be used with merged cells (rowspan)
+        // Using custom export buttons instead
         
-        // Add custom export buttons manually
+        // Add custom export buttons
         const tableId = 'projectSummaryTable';
         const container = document.querySelector(`#${tableId}`).parentNode;
         
@@ -292,71 +294,168 @@
         const buttonsDiv = document.createElement('div');
         buttonsDiv.className = 'dt-buttons mb-2';
         buttonsDiv.innerHTML = `
-            <button class="btn btn-secondary dt-button" onclick="exportTable('copy')"><i class="bi bi-clipboard"></i> Copy</button>
-            <button class="btn btn-success dt-button" onclick="exportTable('excel')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-            <button class="btn btn-info dt-button" onclick="exportTable('csv')"><i class="bi bi-file-earmark-text"></i> CSV</button>
-            <button class="btn btn-danger dt-button" onclick="exportTable('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
-            <button class="btn btn-primary dt-button" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+            <button class="btn btn-secondary dt-button" onclick="copyTable()"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="btn btn-success dt-button" onclick="excelTable()"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn btn-info dt-button" onclick="csvTable()"><i class="bi bi-file-earmark-text"></i> CSV</button>
+            <button class="btn btn-danger dt-button" onclick="pdfTable()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-primary dt-button" onclick="printTable()"><i class="bi bi-printer"></i> Print</button>
         `;
         
         // Insert buttons before table container
         container.parentNode.insertBefore(buttonsDiv, container);
     }
     
-    // Custom export functions for tables with merged cells
-    function exportTable(type) {
+    // Copy function
+    function copyTable() {
         const table = document.getElementById('projectSummaryTable');
-        
-        if (type === 'copy') {
-            // Copy table text to clipboard
-            let text = '';
-            const rows = table.querySelectorAll('tr');
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td, th');
-                let rowText = [];
-                cells.forEach(cell => rowText.push(cell.textContent.trim()));
-                text += rowText.join('\t') + '\n';
-            });
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Table copied to clipboard!');
-            });
-        } else if (type === 'csv') {
-            // Export as CSV
-            let csv = '';
-            const rows = table.querySelectorAll('tr');
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td, th');
-                let rowData = [];
-                cells.forEach(cell => rowData.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"'));
-                csv += rowData.join(',') + '\r\n';
-            });
-            downloadFile(csv, 'project_summary.csv', 'text/csv');
-        } else if (type === 'excel') {
-            // Export as Excel (using HTML table)
-            const html = table.outerHTML;
-            const blob = new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' + html + '</body></html>'], {type: 'application/vnd.ms-excel'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'project_summary.xls';
-            a.click();
-            URL.revokeObjectURL(url);
-        } else if (type === 'pdf') {
-            // Print (which can be saved as PDF)
-            window.print();
-        }
+        let text = '';
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            let rowText = [];
+            cells.forEach(cell => rowText.push(cell.textContent.trim()));
+            text += rowText.join('\t') + '\n';
+        });
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Table copied to clipboard!');
+        });
     }
     
-    function downloadFile(content, filename, mimeType) {
-        const blob = new Blob([content], {type: mimeType});
+    // Excel function
+    function excelTable() {
+        const table = document.getElementById('projectSummaryTable');
+        const html = table.outerHTML;
+        const blob = new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' + html + '</body></html>'], {type: 'application/vnd.ms-excel'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename;
+        a.download = 'project_summary.xls';
         a.click();
         URL.revokeObjectURL(url);
     }
-
+    
+    // CSV function
+    function csvTable() {
+        const table = document.getElementById('projectSummaryTable');
+        let csv = '';
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            let rowData = [];
+            cells.forEach(cell => rowData.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"'));
+            csv += rowData.join(',') + '\r\n';
+        });
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'project_summary.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    // PDF function - downloads actual PDF file
+    function pdfTable() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Get table data
+        const table = document.getElementById('projectSummaryTable');
+        const quarterLabel = document.getElementById('quarterLabel').textContent;
+        
+        // Add title
+        doc.setFontSize(16);
+        doc.text('Project Summary Report', 14, 15);
+        
+        // Add period info
+        doc.setFontSize(10);
+        doc.text(`Period: ${quarterLabel}`, 14, 22);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 27);
+        
+        // Prepare table data
+        const rows = [];
+        const headerRow = ['Project', 'Quarter', 'Expense', 'Budget', 'Implementation on Quarterly Budget (%)', 'Implementation on Total Budget (%)'];
+        
+        table.querySelectorAll('tbody tr').forEach(tr => {
+            const cells = tr.querySelectorAll('td');
+            const rowData = [];
+            cells.forEach(cell => {
+                rowData.push(cell.textContent.trim());
+            });
+            if (rowData.length > 0) {
+                rows.push(rowData);
+            }
+        });
+        
+        // Generate table in PDF
+        doc.autoTable({
+            head: [headerRow],
+            body: rows,
+            startY: 32,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [51, 51, 51] }
+        });
+        
+        // Download PDF
+        doc.save('project_summary.pdf');
+    }
+    
+    // Print function - opens formatted print preview
+    function printTable() {
+        const table = document.getElementById('projectSummaryTable');
+        const quarterLabel = document.getElementById('quarterLabel').textContent;
+        const projectCount = document.getElementById('projectCount').textContent;
+        
+        const today = new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Project Summary - ${quarterLabel}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    h1 { font-size: 18px; margin-bottom: 5px; }
+                    .info { font-size: 12px; color: #666; margin-bottom: 15px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+                    th { background-color: #333 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .text-end { text-align: right; }
+                    .text-center { text-align: center; }
+                    .table-primary { background-color: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .table-secondary { background-color: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .fw-bold { font-weight: bold; }
+                    .badge { padding: 3px 8px; border-radius: 3px; font-size: 10px; }
+                    .bg-success { background-color: #28a745 !important; color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .bg-warning { background-color: #ffc107 !important; color: black; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .bg-danger { background-color: #dc3545 !important; color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <h1>Project Summary Report</h1>
+                <div class="info">
+                    <strong>Period:</strong> ${quarterLabel} | 
+                    <strong>Generated:</strong> ${today} | 
+                    <strong>${projectCount}</strong>
+                </div>
+                ${table.outerHTML}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    }
+    
     function numberFormat(num) {
         return new Intl.NumberFormat('en-US').format(num);
     }
