@@ -150,6 +150,13 @@ let vouchersTable;
 let voucherEntriesTable;
 
 $(document).ready(function() {
+    // Destroy existing DataTable if it exists to prevent reinitialization error
+    if ($.fn.DataTable.isDataTable('#vouchersTable')) {
+        $('#vouchersTable').DataTable().destroy();
+    }
+    if ($.fn.DataTable.isDataTable('#voucherEntriesTable')) {
+        $('#voucherEntriesTable').DataTable().destroy();
+    }
     initVouchersTable();
     initVoucherEntriesTable();
 });
@@ -180,8 +187,8 @@ function initVouchersTable() {
             { data: 'division_name', name: 'division_name' },
             { data: 'total_amount', name: 'total_amount', className: 'text-end' },
             { data: 'entries_count', name: 'entries_count' },
-            { 
-                data: 'entries', 
+            {
+                data: 'entries',
                 name: 'entries',
                 render: function(data, type, row) {
                     if (data && data.length > 0) {
@@ -255,7 +262,7 @@ function showVoucherDetails(voucherId) {
     // Get voucher details from table data
     let tableData = vouchersTable.data();
     let voucher = null;
-    
+
     for (let i = 0; i < tableData.length; i++) {
         if (tableData[i].id === voucherId) {
             voucher = tableData[i];
@@ -276,12 +283,12 @@ function showVoucherDetails(voucherId) {
     html += '<div class="col-md-6"><strong>Division:</strong> ' + voucher.division_name + '</div>';
     html += '<div class="col-md-6"><strong>Total Amount:</strong> ৳ ' + voucher.total_amount + '</div>';
     html += '</div>';
-    
+
     html += '<h6>Entries</h6>';
     html += '<table class="table table-sm table-bordered">';
     html += '<thead><tr><th>Economic Code</th><th>Category</th><th class="text-end">Amount</th></tr></thead>';
     html += '<tbody>';
-    
+
     if (voucher.entries && voucher.entries.length > 0) {
         voucher.entries.forEach(function(entry) {
             html += '<tr>';
@@ -293,7 +300,7 @@ function showVoucherDetails(voucherId) {
     } else {
         html += '<tr><td colspan="3" class="text-center text-muted">No entries</td></tr>';
     }
-    
+
     html += '</tbody></table>';
 
     $('#voucherDetailContent').html(html);

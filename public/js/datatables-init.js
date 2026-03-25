@@ -69,7 +69,6 @@ $(document).ready(function() {
     }
 
     // Initialize static tables (exist on page load)
-    initDataTable('#financialTable');
     initDataTable('#cutoffTable');
     initDataTable('#projectSummaryTable');
     initDataTable('#categorySummaryTable');

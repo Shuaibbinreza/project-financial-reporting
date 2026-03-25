@@ -18,20 +18,33 @@ class FinancialReportController extends Controller
 {
     public function index(Request $request)
     {
-        // -----------------------------
-        // Filters
-        // -----------------------------
-        $projectId = $request->project_id;
-        $divisionIds = $request->division_ids;
-        $districtIds = $request->district_ids;
-        $categoryIds = $request->category_ids;
-        $economicCodeIds = $request->economic_code_ids;
-        $fiscalYearId = $request->fiscal_year_id;
-        $selectedQuarter = $request->quarter; // Q1, Q2, Q3, Q4 or null
+        $projects = Project::orderBy('name')->get();
+        $divisions = Division::orderBy('name')->get();
+        $districts = District::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
+        $economicCodes = EconomicCode::orderBy('code')->get();
+        $quarters = Quarter::orderBy('quarter_number')->get();
 
-        // -----------------------------
-        // Fiscal year quarters
-        // -----------------------------
+        return view('reports.financial', compact(
+            'projects', 'divisions', 'districts', 'categories', 'economicCodes', 'quarters'
+        ));
+    }
+
+    /**
+     * AJAX: Get financial spending data
+     */
+    public function financialAjax(Request $request)
+    {
+        $projectId = $request->project_id;
+        $divisionId = $request->division_id;
+        $districtId = $request->district_id;
+        $categoryId = $request->category_id;
+        $economicCodeId = $request->economic_code_id;
+        $dateFrom = $request->date_from;
+        $dateTo = $request->date_to;
+        $quarter = $request->quarter;
+
+        // Map quarters to months based on fiscal year (July-June)
         $quarterMonths = [
             'Q1' => [7, 8, 9],
             'Q2' => [10, 11, 12],
@@ -39,83 +52,79 @@ class FinancialReportController extends Controller
             'Q4' => [4, 5, 6],
         ];
 
-        if ($selectedQuarter) {
-            $quarterMonths = [$selectedQuarter => $quarterMonths[$selectedQuarter]];
+        $query = VoucherEntry::with([
+            'voucher.project',
+            'voucher.division',
+            'voucher.district',
+            'category',
+            'economicCode'
+        ])->select('voucher_entries.*');
+
+        if ($projectId) {
+            $query->whereHas('voucher', function ($q) use ($projectId) {
+                $q->where('project_id', $projectId);
+            });
         }
 
-        // -----------------------------
-        // Get yearly budgets
-        // -----------------------------
-        $yearlyBudgets = YearlyBudget::query()
-            ->when($projectId, fn($q) => $q->where('project_id', $projectId))
-            ->when($fiscalYearId, fn($q) => $q->where('fiscal_year_id', $fiscalYearId))
-            ->when($categoryIds, fn($q) => $q->whereIn('category_id', $categoryIds))
-            ->when($economicCodeIds, fn($q) => $q->whereIn('economic_code_id', $economicCodeIds))
-            ->with(['project', 'category', 'economicCode'])
-            ->get();
-
-        $report = [];
-
-        foreach ($yearlyBudgets as $budget) {
-
-            $key = $budget->project->name . ' | ' . $budget->category->name . ' | ' . $budget->economicCode->code;
-
-            $report[$key] = [
-                'project' => $budget->project->name,
-                'category' => $budget->category->name,
-                'economic_code' => $budget->economicCode->code,
-                'yearly_budget' => $budget->total_amount,
-                'quarters' => [],
-            ];
-
-            $totalExpenses = 0;
-
-            foreach ($quarterMonths as $qName => $months) {
-
-                $quarterExpenses = VoucherEntry::where('category_id', $budget->category_id)
-                    ->where('economic_code_id', $budget->economic_code_id)
-                    ->whereHas('voucher', function ($q) use ($projectId, $divisionIds, $districtIds, $months) {
-                        $q->when($projectId, fn($q) => $q->where('project_id', $projectId))
-                          ->when($divisionIds, fn($q) => $q->whereIn('division_id', $divisionIds))
-                          ->when($districtIds, fn($q) => $q->whereIn('district_id', $districtIds))
-                          ->whereIn(DB::raw('MONTH(date)'), $months);
-                    })
-                    ->sum('amount');
-
-                $quarterBudget = $budget->total_amount / 4; // evenly distributed
-                $percentSpent = $quarterBudget > 0 ? ($quarterExpenses / $quarterBudget) * 100 : 0;
-
-                $report[$key]['quarters'][$qName] = [
-                    'budget' => $quarterBudget,
-                    'expenses' => $quarterExpenses,
-                    'percent_spent' => round($percentSpent, 2) . '%',
-                ];
-
-                $totalExpenses += $quarterExpenses;
-            }
-
-            $report[$key]['yearly_total'] = [
-                'budget' => $budget->total_amount,
-                'expenses' => $totalExpenses,
-                'percent_spent' => $budget->total_amount > 0
-                    ? round($totalExpenses / $budget->total_amount * 100, 2) . '%'
-                    : '0%',
-            ];
+        if ($divisionId) {
+            $query->whereHas('voucher', function ($q) use ($divisionId) {
+                $q->where('division_id', $divisionId);
+            });
         }
 
-        // -----------------------------
-        // Pass to view
-        // -----------------------------
-        $projects = Project::all();
-        $categories = Category::all();
-        $economicCodes = EconomicCode::all();
-        $divisions = Division::all();
-        $districts = District::all();
-        $quarters = Quarter::orderBy('quarter_number')->get();
+        if ($districtId) {
+            $query->whereHas('voucher', function ($q) use ($districtId) {
+                $q->where('district_id', $districtId);
+            });
+        }
 
-        return view('reports.financial', compact(
-            'report', 'projects', 'categories', 'economicCodes', 'divisions', 'districts', 'quarters'
-        ));
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($economicCodeId) {
+            $query->where('economic_code_id', $economicCodeId);
+        }
+
+        // Quarter filter
+        if ($quarter && isset($quarterMonths[$quarter])) {
+            $query->whereHas('voucher', function ($q) use ($quarterMonths, $quarter) {
+                $q->whereIn(DB::raw('MONTH(date)'), $quarterMonths[$quarter]);
+            });
+        }
+
+        if ($dateFrom) {
+            $query->whereHas('voucher', function ($q) use ($dateFrom) {
+                $q->where('date', '>=', $dateFrom);
+            });
+        }
+
+        if ($dateTo) {
+            $query->whereHas('voucher', function ($q) use ($dateTo) {
+                $q->where('date', '<=', $dateTo);
+            });
+        }
+
+        $entries = $query->orderBy('id', 'desc')->get();
+
+        $data = $entries->map(function ($entry) {
+            $voucher = $entry->voucher;
+            return [
+                'id' => $entry->id,
+                'voucher_date' => $voucher && $voucher->date
+                    ? \Carbon\Carbon::parse($voucher->date)->format('d M Y')
+                    : '-',
+                'voucher_no' => $voucher ? '#' . str_pad($voucher->id, 6, '0', STR_PAD_LEFT) : '-',
+                'project_name' => $voucher && $voucher->project ? $voucher->project->name : '-',
+                'division_name' => $voucher && $voucher->division ? $voucher->division->name : '-',
+                'district_name' => $voucher && $voucher->district ? $voucher->district->name : '-',
+                'category_name' => $entry->category ? $entry->category->name : '-',
+                'economic_code' => $entry->economicCode ? $entry->economicCode->code : '-',
+                'amount' => number_format($entry->amount, 2)
+            ];
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function cutoffReport(Request $request)

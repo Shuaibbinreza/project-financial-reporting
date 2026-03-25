@@ -25,6 +25,7 @@ Route::get('/dashboard', [ReportController::class, 'index'])->name('dashboard');
 Route::prefix('reports')->name('reports.')->group(function () {
     // Main report pages
     Route::get('/financial', [FinancialReportController::class, 'index'])->name('financial');
+    Route::get('/financial/ajax', [FinancialReportController::class, 'financialAjax'])->name('financial-data');
     Route::get('/cutoff', [FinancialReportController::class, 'cutoffReport'])->name('cutoff');
     Route::get('/category-summary', [FinancialReportController::class, 'categorySummary'])->name('category-summary');
     Route::get('/project-summary', [FinancialReportController::class, 'projectSummary'])->name('project-summary');

@@ -139,6 +139,10 @@
 let voucherEntriesTable;
 
 $(document).ready(function() {
+    // Destroy existing DataTable if it exists to prevent reinitialization error
+    if ($.fn.DataTable.isDataTable('#voucherEntriesTable')) {
+        $('#voucherEntriesTable').DataTable().destroy();
+    }
     initVoucherEntriesTable();
 });
 
