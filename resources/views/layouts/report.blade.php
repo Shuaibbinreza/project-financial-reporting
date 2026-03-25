@@ -130,6 +130,14 @@
                             <i class="bi bi-file-earmark-ruled"></i>Cutoff Report
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <span class="sidebar-link text-white-50 small text-uppercase mt-3 mb-2">Vouchers</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="sidebar-link {{ request()->routeIs('vouchers.*') ? 'active' : '' }}" href="{{ route('vouchers.index') }}">
+                            <i class="bi bi-receipt"></i>Voucher List
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>
