@@ -1,255 +1,396 @@
-# Financial Reporting System - Project Overview
+# Financial Reporting System - Database Overview
 
-## Introduction
+## Table Definitions and Relationships
 
-This is a Laravel-based Financial Reporting System designed to manage financial vouchers, track project spending, and generate various financial reports. The system provides comprehensive tools for budget monitoring, fiscal year management, and data export capabilities.
+This document describes all database tables in the Financial Reporting System and their relationships.
 
-## Technology Stack
+---
 
-| Component | Technology |
-|-----------|-------------|
-| Framework | Laravel 13.x |
-| PHP | 8.3+ |
-| Database | MySQL/SQLite |
-| PDF Generation | barryvdh/laravel-dompdf |
-| Excel Export | maatwebsite/excel |
-| Frontend | Bootstrap 5, DataTables |
-| JavaScript | Vanilla JS |
+## 1. Users Table
 
-## Key Features
+**Table Name**: `users`
 
-### 1. Voucher Management
-- Create, edit, and delete financial vouchers
-- Multiple entries per voucher with different categories and economic codes
-- Link vouchers to projects, divisions, and districts
-- Track voucher dates and creators
+**Purpose**: Stores system user authentication and profile information.
 
-### 2. Project Tracking
-- Manage multiple projects
-- Track spending per project
-- Budget vs expense analysis
-- Quarterly spending breakdowns
+**Columns**:
 
-### 3. Financial Reports
-- **Financial Report**: Filterable by project, division, district, category, economic code, date range, and quarter
-- **Project Summary**: Budget vs expense comparison per project
-- **Category Summary**: Spending by economic categories
-- **Project Spendings**: Detailed spending records under each project
-- **Cutoff Report**: Financial data cutoff for specific periods
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique user identifier |
+| name | VARCHAR(255) | NOT NULL | User's full name |
+| email | VARCHAR(255) | UNIQUE, NOT NULL | User's email address |
+| email_verified_at | TIMESTAMP | NULLABLE | Email verification timestamp |
+| password | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| remember_token | VARCHAR(100) | NULLABLE | Token for "remember me" functionality |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
 
-### 4. Geographic Management
-- Division management (e.g., Dhaka, Chittagong)
-- District management within divisions
-- Geographic filtering in reports
+**Relationships**:
+- HasMany `Voucher` (via `created_by` foreign key)
 
-### 5. Fiscal Year Support
-- Multi-year fiscal data management
-- Automatic quarterly breakdowns (Q1, Q2, Q3, Q4)
-- July-June fiscal year format
+---
 
-### 6. Data Export
-- PDF export for all reports
-- Excel export functionality
-- CSV export
-- Copy to clipboard
-- Print support
+## 2. Projects Table
 
-## Database Schema
+**Table Name**: `projects`
 
-### Core Models
+**Purpose**: Stores financial projects being tracked in the system.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique project identifier |
+| name | VARCHAR(255) | NOT NULL | Project name |
+| code | VARCHAR(255) | NULLABLE | Project code |
+| start_date | DATE | NOT NULL | Project start date |
+| end_date | DATE | NOT NULL | Project end date |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- HasMany `Voucher`
+- HasMany `YearlyBudget`
+
+---
+
+## 3. Divisions Table
+
+**Table Name**: `divisions`
+
+**Purpose**: Stores geographic divisions (e.g., Dhaka, Chittagong, Sylhet).
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique division identifier |
+| name | VARCHAR(255) | UNIQUE, NOT NULL | Division name |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- HasMany `District`
+- HasMany `Voucher`
+
+---
+
+## 4. Districts Table
+
+**Table Name**: `districts`
+
+**Purpose**: Stores districts within divisions.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique district identifier |
+| division_id | BIGINT | FOREIGN KEY → divisions(id), CASCADE DELETE | Reference to parent division |
+| name | VARCHAR(255) | NOT NULL | District name |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Unique Constraint**: `[division_id, name]` - combination must be unique
+
+**Relationships**:
+- BelongsTo `Division`
+- HasMany `Voucher`
+
+---
+
+## 5. Categories Table
+
+**Table Name**: `categories`
+
+**Purpose**: Stores economic categories for classifying budget codes (e.g., Salaries, Equipment, Travel, Supplies).
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique category identifier |
+| name | VARCHAR(255) | UNIQUE, NOT NULL | Category name |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- HasMany `EconomicCode`
+- HasMany `YearlyBudget`
+- HasMany `VoucherEntry`
+
+---
+
+## 6. Economic Codes Table
+
+**Table Name**: `economic_codes`
+
+**Purpose**: Stores budget codes belonging to categories. These are the specific line items for tracking expenditures.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique economic code identifier |
+| category_id | BIGINT | FOREIGN KEY → categories(id), CASCADE DELETE | Reference to parent category |
+| code | VARCHAR(255) | UNIQUE, NOT NULL | Economic code (e.g., "4501") |
+| description | VARCHAR(255) | NULLABLE | Code description |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- BelongsTo `Category`
+- HasMany `YearlyBudget`
+- HasMany `VoucherEntry`
+
+---
+
+## 7. Fiscal Years Table
+
+**Table Name**: `fiscal_years`
+
+**Purpose**: Stores fiscal year definitions (July 1 to June 30).
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique fiscal year identifier |
+| name | VARCHAR(255) | UNIQUE, NOT NULL | Fiscal year name (e.g., "2025-2026") |
+| start_date | DATE | NOT NULL | Fiscal year start date (July 1) |
+| end_date | DATE | NOT NULL | Fiscal year end date (June 30) |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- HasMany `Quarter`
+- HasMany `YearlyBudget`
+
+---
+
+## 8. Quarters Table
+
+**Table Name**: `quarters`
+
+**Purpose**: Stores quarterly divisions within fiscal years (Q1, Q2, Q3, Q4).
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique quarter identifier |
+| fiscal_year_id | BIGINT | FOREIGN KEY → fiscal_years(id), CASCADE DELETE | Reference to parent fiscal year |
+| name | VARCHAR(255) | NOT NULL | Quarter name (e.g., "Jul-Sept 2025") |
+| code | VARCHAR(255) | NOT NULL | Quarter code (Q1, Q2, Q3, Q4) |
+| quarter_number | INTEGER | NOT NULL | Quarter number (1, 2, 3, 4) |
+| start_date | DATE | NOT NULL | Quarter start date |
+| end_date | DATE | NOT NULL | Quarter end date |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Unique Constraint**: `[fiscal_year_id, quarter_number]` - each fiscal year has exactly 4 quarters
+
+**Relationships**:
+- BelongsTo `FiscalYear`
+
+---
+
+## 9. Yearly Budgets Table
+
+**Table Name**: `yearly_budgets`
+
+**Purpose**: Stores annual budget allocations for each project, category, and economic code combination.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique yearly budget identifier |
+| project_id | BIGINT | FOREIGN KEY → projects(id), CASCADE DELETE | Reference to project |
+| fiscal_year_id | BIGINT | FOREIGN KEY → fiscal_years(id), CASCADE DELETE | Reference to fiscal year |
+| category_id | BIGINT | FOREIGN KEY → categories(id), CASCADE DELETE | Reference to category |
+| economic_code_id | BIGINT | FOREIGN KEY → economic_codes(id), CASCADE DELETE | Reference to economic code |
+| total_amount | DECIMAL(15,2) | NOT NULL | Budget amount for the year |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Unique Constraint**: `[project_id, fiscal_year_id, category_id, economic_code_id]` - ensures unique budget per combination
+
+**Relationships**:
+- BelongsTo `Project`
+- BelongsTo `FiscalYear`
+- BelongsTo `Category`
+- BelongsTo `EconomicCode`
+
+---
+
+## 10. Vouchers Table
+
+**Table Name**: `vouchers`
+
+**Purpose**: Stores financial voucher documents - the main transaction records in the system.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique voucher identifier |
+| project_id | BIGINT | FOREIGN KEY → projects(id), CASCADE DELETE | Reference to project |
+| date | DATE | NOT NULL | Voucher date |
+| division_id | BIGINT | FOREIGN KEY → divisions(id), CASCADE DELETE | Reference to division |
+| district_id | BIGINT | FOREIGN KEY → districts(id), CASCADE DELETE | Reference to district |
+| created_by | BIGINT | FOREIGN KEY → users(id), CASCADE DELETE | User who created the voucher |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- BelongsTo `Project`
+- BelongsTo `Division`
+- BelongsTo `District`
+- BelongsTo `User` (via `created_by`)
+- HasMany `VoucherEntry`
+
+---
+
+## 11. Voucher Entries Table
+
+**Table Name**: `voucher_entries`
+
+**Purpose**: Stores individual line items within vouchers. Each entry represents a single expenditure with category and economic code.
+
+**Columns**:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique voucher entry identifier |
+| voucher_id | BIGINT | FOREIGN KEY → vouchers(id), CASCADE DELETE | Reference to parent voucher |
+| category_id | BIGINT | FOREIGN KEY → categories(id), CASCADE DELETE | Reference to category |
+| economic_code_id | BIGINT | FOREIGN KEY → economic_codes(id), CASCADE DELETE | Reference to economic code |
+| amount | DECIMAL(15,2) | NOT NULL | Expenditure amount |
+| created_at | TIMESTAMP | | Record creation timestamp |
+| updated_at | TIMESTAMP | | Record update timestamp |
+
+**Relationships**:
+- BelongsTo `Voucher`
+- BelongsTo `Category`
+- BelongsTo `EconomicCode`
+
+---
+
+## Entity Relationship Diagram
 
 ```
-Users
-├── id
-├── name
-├── email
-└── password
+┌─────────────────┐       ┌─────────────────┐
+│     users       │       │    projects     │
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──┐   │ id (PK)         │
+│ name            │   │   │ name            │
+│ email           │   │   │ code            │
+│ password        │   │   │ start_date      │
+│ remember_token  │   │   │ end_date        │
+└─────────────────┘   │   └─────────────────┘
+         │            │          │
+         │  created_by          │
+         │    1:M   └──────────┐ │
+         ▼                    ▼ ▼
+┌─────────────────┐    ┌─────────────────┐
+│    vouchers     │    │ yearly_budgets  │
+├─────────────────┤    ├─────────────────┤
+│ id (PK)         │    │ id (PK)         │
+│ project_id (FK) │    │ project_id (FK) │
+│ date            │    │ fiscal_year_id  │
+│ division_id (FK)│    │ category_id (FK)│
+│ district_id (FK)│    │ economic_code_id│
+│ created_by (FK) │    │ total_amount    │
+└────────┬────────┘    └─────────────────┘
+         │
+         │ 1:M (voucher entries)
+         ▼
+┌─────────────────────┐
+│   voucher_entries   │
+├─────────────────────┤
+│ id (PK)             │
+│ voucher_id (FK)     │
+│ category_id (FK)    │
+│ economic_code_id(FK)│
+│ amount              │
+└─────────────────────┘
 
-Projects
-├── id
-├── name
-├── code
-├── start_date
-└── end_date
+┌─────────────────┐       ┌─────────────────┐
+│    divisions    │       │    districts    │
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ id (PK)         │
+│ name            │  1:M  │ division_id (FK)│
+└─────────────────┘       │ name            │
+         │                └─────────────────┘
+         │ 1:M                     │
+         ▼                         │ 1:M
+┌─────────────────┐                ▼
+│    vouchers     │         ┌─────────────────┐
+├─────────────────┤         │    categories   │
+│ division_id (FK)│         ├─────────────────┤
+│ district_id (FK)│         │ id (PK)         │
+└─────────────────┘         │ name            │
+                            └────────┬────────┘
+                                     │ 1:M
+                                     ▼
+                            ┌─────────────────┐
+                            │ economic_codes  │
+                            ├─────────────────┤
+                            │ id (PK)         │
+                            │ category_id (FK)│
+                            │ code            │
+                            │ description     │
+                            └─────────────────┘
 
-Divisions
-├── id
-└── name
-
-Districts
-├── id
-├── name
-└── division_id
-
-Categories
-├── id
-├── name
-└── code
-
-EconomicCodes
-├── id
-├── code
-├── name
-└── category_id
-
-FiscalYears
-├── id
-├── name
-├── start_date
-└── end_date
-
-Quarters
-├── id
-├── fiscal_year_id
-├── name
-├── code
-├── quarter_number
-├── start_date
-└── end_date
-
-YearlyBudgets
-├── id
-├── project_id
-├── fiscal_year_id
-├── category_id
-├── economic_code_id
-└── total_amount
-
-Vouchers
-├── id
-├── project_id
-├── date
-├── division_id
-├── district_id
-├── created_by
-└── created_at
-
-VoucherEntries
-├── id
-├── voucher_id
-├── category_id
-├── economic_code_id
-└── amount
+┌─────────────────┐       ┌─────────────────┐
+│  fiscal_years  │       │    quarters     │
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ id (PK)         │
+│ name            │  1:M  │ fiscal_year_id  │
+│ start_date      │       │ name            │
+│ end_date        │       │ code            │
+└─────────────────┘       │ quarter_number  │
+                          │ start_date      │
+                          │ end_date        │
+                          └─────────────────┘
 ```
 
-## Project Structure
+---
 
-```
-project-financial-reporting/
-├── app/
-│   ├── Http/
-│   │   └── Controllers/
-│   │       ├── FinancialReportController.php
-│   │       └── VoucherController.php
-│   ├── Models/
-│   │   ├── Category.php
-│   │   ├── District.php
-│   │   ├── Division.php
-│   │   ├── EconomicCode.php
-│   │   ├── FiscalYear.php
-│   │   ├── Project.php
-│   │   ├── Quarter.php
-│   │   ├── User.php
-│   │   ├── Voucher.php
-│   │   ├── VoucherEntry.php
-│   │   └── YearlyBudget.php
-│   └── Services/
-│       └── FinancialReportService.php
-├── database/
-│   ├── migrations/
-│   └── seeders/
-├── resources/
-│   └── views/
-│       ├── layouts/
-│       ├── reports/
-│       └── vouchers/
-└── routes/
-    └── web.php
-```
+## Summary of Relationships
 
-## Available Routes
+| Parent Table | Child Table | Relationship Type | Description |
+|--------------|-------------|-------------------|-------------|
+| users | vouchers | 1:M | Each user can create multiple vouchers |
+| projects | vouchers | 1:M | Each project can have multiple vouchers |
+| projects | yearly_budgets | 1:M | Each project can have multiple yearly budgets |
+| divisions | districts | 1:M | Each division can have multiple districts |
+| divisions | vouchers | 1:M | Each division can have multiple vouchers |
+| districts | vouchers | 1:M | Each district can have multiple vouchers |
+| categories | economic_codes | 1:M | Each category can have multiple economic codes |
+| categories | yearly_budgets | 1:M | Each category can have multiple yearly budgets |
+| categories | voucher_entries | 1:M | Each category can have multiple voucher entries |
+| economic_codes | yearly_budgets | 1:M | Each economic code can have multiple yearly budgets |
+| economic_codes | voucher_entries | 1:M | Each economic code can have multiple voucher entries |
+| fiscal_years | quarters | 1:M | Each fiscal year has exactly 4 quarters |
+| fiscal_years | yearly_budgets | 1:M | Each fiscal year can have multiple yearly budgets |
+| vouchers | voucher_entries | 1:M | Each voucher can have multiple entries |
 
-| Method | Route | Controller | Description |
-|--------|-------|------------|-------------|
-| GET | `/` | Controller | Dashboard/Welcome |
-| GET | `/vouchers` | VoucherController | Voucher list |
-| POST | `/vouchers` | VoucherController | Create voucher |
-| GET | `/vouchers/{id}` | VoucherController | View voucher |
-| PUT | `/vouchers/{id}` | VoucherController | Update voucher |
-| DELETE | `/vouchers/{id}` | VoucherController | Delete voucher |
-| GET | `/vouchers/entries` | VoucherController | Voucher entry management |
-| POST | `/vouchers/entries` | VoucherController | Create entry |
-| GET | `/reports/financial` | FinancialReportController | Financial reports |
-| GET | `/reports/project-summary` | FinancialReportController | Project summary |
-| GET | `/reports/category-summary` | FinancialReportController | Category summary |
-| GET | `/reports/project-spendings` | FinancialReportController | Project spendings |
-| GET | `/reports/cutoff` | FinancialReportController | Cutoff reports |
+---
 
-## Installation
+## Database Indexes
 
-### Prerequisites
-- PHP 8.3+
-- Composer
-- Node.js & NPM
-- MySQL or SQLite
-
-### Setup Steps
-
-1. Install dependencies:
-```bash
-composer install
-```
-
-2. Configure environment:
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-3. Run migrations:
-```bash
-php artisan migrate --force
-php artisan db:seed
-```
-
-4. Build assets:
-```bash
-npm install
-npm run build
-```
-
-5. Run server:
-```bash
-php artisan serve
-```
-
-## Usage
-
-### Creating a Voucher
-1. Navigate to `/vouchers`
-2. Click "Create New Voucher"
-3. Select project, division, district
-4. Add entries with category, economic code, and amount
-5. Save voucher
-
-### Generating Reports
-1. Navigate to desired report (e.g., `/reports/financial`)
-2. Apply filters (project, division, date range, quarter)
-3. Click "Filter" to refresh data
-4. Use export buttons to download PDF/Excel/CSV
-
-## Development
-
-### Running Tests
-```bash
-composer run test
-```
-
-### Development Mode
-```bash
-composer run dev
-```
-
-## License
-
-MIT License
+| Table | Index | Type | Columns |
+|-------|-------|------|---------|
+| districts | divisions_division_id_foreign | FOREIGN KEY | division_id |
+| economic_codes | economic_codes_category_id_foreign | FOREIGN KEY | category_id |
+| vouchers | vouchers_project_id_foreign | FOREIGN KEY | project_id |
+| vouchers | vouchers_division_id_foreign | FOREIGN KEY | division_id |
+| vouchers | vouchers_district_id_foreign | FOREIGN KEY | district_id |
+| vouchers | vouchers_created_by_foreign | FOREIGN KEY | created_by |
+| voucher_entries | voucher_entries_voucher_id_foreign | FOREIGN KEY | voucher_id |
+| voucher_entries | voucher_entries_category_id_foreign | FOREIGN KEY | category_id |
+| voucher_entries | voucher_entries_economic_code_id_foreign | FOREIGN KEY | economic_code_id |
+| yearly_budgets | yearly_budget_unique | UNIQUE | project_id, fiscal_year_id, category_id, economic_code_id |
+| quarters | quarters_fiscal_year_id_quarter_number_unique | UNIQUE | fiscal_year_id, quarter_number |
