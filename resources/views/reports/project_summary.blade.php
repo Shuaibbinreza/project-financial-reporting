@@ -212,15 +212,15 @@
             const projectPct = parseFloat(project.budgeted_percentage);
             const implPct = parseFloat(project.project_implementation);
             const totalBudget = project.total_budget_all || 1;
-            
+
             const rows = [];
             const rowCount = project.quarters.length + 1;
-            
+
             // Add quarter rows first
             project.quarters.forEach((q, index) => {
                 const qPct = parseFloat(q.budgeted_percentage);
                 const implOnTotal = ((q.expenses / totalBudget) * 100).toFixed(2);
-                
+
                 // First quarter row has project name with rowspan
                 if (index === 0) {
                     rows.push(`
@@ -261,7 +261,7 @@
                     `);
                 }
             });
-            
+
             // Add project total row at the bottom (no rowspan)
             rows.push(`
                 <tr class="table-primary fw-bold">
@@ -293,7 +293,7 @@
                 </table>
             </div>
         `;
-        
+
         // Initialize DataTables after table is rendered
         initDataTable();
     }
@@ -342,7 +342,7 @@
             alert('Table copied to clipboard!');
         });
     }
-    
+
     // Excel function
     function excelTable() {
         const table = document.getElementById('projectSummaryTable');
@@ -355,7 +355,7 @@
         a.click();
         URL.revokeObjectURL(url);
     }
-    
+
     // CSV function
     function csvTable() {
         const table = document.getElementById('projectSummaryTable');
@@ -375,38 +375,38 @@
         a.click();
         URL.revokeObjectURL(url);
     }
-    
+
     // PDF function - downloads actual PDF file using HTML table conversion
     function pdfTable() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
+
         // Get table element
         const table = document.getElementById('projectSummaryTable');
         const quarterLabel = document.getElementById('quarterLabel').textContent;
-        
+
         // Add title
         doc.setFontSize(16);
         doc.text('Project Summary Report', 14, 15);
-        
+
         // Add period info
         doc.setFontSize(10);
         doc.text(`Period: ${quarterLabel}`, 14, 22);
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 27);
-        
+
         // Clone the table and prepare it for PDF
         const tableClone = table.cloneNode(true);
-        
+
         // Use html() method which preserves rowspan
         doc.autoTable({
             html: tableClone,
             startY: 32,
-            styles: { 
+            styles: {
                 fontSize: 8,
                 cellPadding: 2,
                 overflow: 'linebreak'
             },
-            headStyles: { 
+            headStyles: {
                 fillColor: [26, 26, 46],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold'
@@ -429,23 +429,23 @@
             useCss: false,
             useCellStyles: true
         });
-        
+
         // Download PDF
         doc.save('project_summary.pdf');
     }
-    
+
     // Print function - opens formatted print preview
     function printTable() {
         const table = document.getElementById('projectSummaryTable');
         const quarterLabel = document.getElementById('quarterLabel').textContent;
         const projectCount = document.getElementById('projectCount').textContent;
-        
-        const today = new Date().toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+
+        const today = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
-        
+
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -474,8 +474,8 @@
             <body>
                 <h1>Project Summary Report</h1>
                 <div class="info">
-                    <strong>Period:</strong> ${quarterLabel} | 
-                    <strong>Generated:</strong> ${today} | 
+                    <strong>Period:</strong> ${quarterLabel} |
+                    <strong>Generated:</strong> ${today} |
                     <strong>${projectCount}</strong>
                 </div>
                 ${table.outerHTML}
@@ -489,116 +489,75 @@
             printWindow.close();
         }, 250);
     }
-    
-    // Pagination
-    const rowsPerPage = 10;
+
+    // Pagination - disabled (show all)
+    const rowsPerPage = 100000;
     let currentPage = 1;
     let allRows = [];
-    
+
     function initPagination() {
         const table = document.getElementById('projectSummaryTable');
         if (!table) return;
-        
+
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
-        
+
         // Store all rows
         allRows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Show first page
-        showPage(1);
+
+        // Show all rows (pagination disabled)
+        allRows.forEach(row => row.style.display = '');
     }
-    
+
     function showPage(page) {
         currentPage = page;
         const table = document.getElementById('projectSummaryTable');
         if (!table) return;
-        
+
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
-        
+
         // Hide all rows first
         allRows.forEach(row => row.style.display = 'none');
-        
+
         // Calculate start and end indices
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-        
+
         // Show rows for current page
         for (let i = start; i < end && i < allRows.length; i++) {
             allRows[i].style.display = '';
         }
-        
+
         // Update pagination controls
         updatePaginationControls();
     }
-    
+
     function updatePaginationControls() {
-        const table = document.getElementById('projectSummaryTable');
-        if (!table) return;
-        
-        const container = table.parentNode;
-        
-        // Remove existing pagination
-        const existingPagination = container.nextElementSibling;
-        if (existingPagination && existingPagination.classList.contains('pagination-wrapper')) {
-            existingPagination.remove();
-        }
-        
-        const totalPages = Math.ceil(allRows.length / rowsPerPage);
-        
-        if (totalPages <= 1) return;
-        
-        // Create pagination controls
-        const paginationDiv = document.createElement('div');
-        paginationDiv.className = 'pagination-wrapper mt-3 d-flex justify-content-between align-items-center';
-        
-        const showingStart = (currentPage - 1) * rowsPerPage + 1;
-        const showingEnd = Math.min(currentPage * rowsPerPage, allRows.length);
-        
-        paginationDiv.innerHTML = `
-            <div class="text-muted small">Showing ${showingStart} to ${showingEnd} of ${allRows.length} entries</div>
-            <ul class="pagination mb-0">
-                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(1)">First</a>
-                </li>
-                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${currentPage - 1})">Previous</a>
-                </li>
-                ${generatePageNumbers(totalPages)}
-                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${currentPage + 1})">Next</a>
-                </li>
-                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="event.preventDefault(); showPage(${totalPages})">Last</a>
-                </li>
-            </ul>
-        `;
-        
-        container.parentNode.insertBefore(paginationDiv, container.nextSibling);
+        // Pagination disabled - no controls to update
     }
 
     // Number format function for template literals
     function numberFormat(num) {
         return new Intl.NumberFormat('en-US').format(num);
     }
-    
+
     function generatePageNumbers(totalPages) {
         let html = '';
         const maxVisible = 5;
         let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let end = Math.min(totalPages, start + maxVisible - 1);
-        
+
         if (end - start < maxVisible - 1) {
             start = Math.max(1, end - maxVisible + 1);
         }
-        
+
         for (let i = start; i <= end; i++) {
             html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); showPage(${i})">${i}</a></li>`;
         }
         return html;
     }
-    
+
     // Event listeners
     document.getElementById('filterBtn').addEventListener('click', fetchReport);
 

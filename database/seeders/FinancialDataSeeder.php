@@ -68,8 +68,14 @@ class FinancialDataSeeder extends Seeder
         // -------------------------
         $divisions = Division::all();
 
+        // Create enough vouchers to reach 3000 entries
+        // Each voucher has entries for all categories and economic codes
+        $entriesPerVoucher = $categories->count() * $categories->first()->economicCodes->count();
+        $vouchersNeeded = (int) ceil(3000 / $entriesPerVoucher);
+        $vouchersPerProject = (int) ceil($vouchersNeeded / $projects->count());
+
         foreach ($projects as $project) {
-            Voucher::factory(5)->create([
+            Voucher::factory($vouchersPerProject)->create([
                 'project_id' => $project->id,
                 'created_by' => $user->id,
             ])->each(function ($voucher) use ($divisions, $categories) {
